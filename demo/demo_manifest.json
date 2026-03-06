@@ -1,0 +1,1253 @@
+{
+  "demo_norm_01_12x5000.npy": {
+    "display_name": "Demo: NORM (01)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 15126,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.9841071367263794,
+      "MI": 0.02617473155260086,
+      "STTC": 0.007885121740400791,
+      "CD": 0.06911392509937286,
+      "HYP": 0.02135501056909561
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 19,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_02_12x5000.npy": {
+    "display_name": "Demo: NORM (02)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 11936,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.9699890613555908,
+      "MI": 0.022288378328084946,
+      "STTC": 0.0030390513129532337,
+      "CD": 0.10420776158571243,
+      "HYP": 0.10766135156154633
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_03_12x5000.npy": {
+    "display_name": "Demo: NORM (03)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 6095,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.967603325843811,
+      "MI": 0.024912964552640915,
+      "STTC": 0.05973586440086365,
+      "CD": 0.10912124812602997,
+      "HYP": 0.053429972380399704
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_04_12x5000.npy": {
+    "display_name": "Demo: NORM (04)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 1691,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.9510621428489685,
+      "MI": 0.07601839303970337,
+      "STTC": 0.03411894664168358,
+      "CD": 0.029093321412801743,
+      "HYP": 0.08216114342212677
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 16,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_05_12x5000.npy": {
+    "display_name": "Demo: NORM (05)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 3551,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.9400441646575928,
+      "MI": 0.018262889236211777,
+      "STTC": 0.0012781016994267702,
+      "CD": 0.40647006034851074,
+      "HYP": 0.08678583055734634
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 17,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_06_12x5000.npy": {
+    "display_name": "Demo: NORM (06)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 5656,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.9010915160179138,
+      "MI": 0.3015576899051666,
+      "STTC": 0.0017314405413344502,
+      "CD": 0.07920454442501068,
+      "HYP": 0.040498774498701096
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 17,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_07_12x5000.npy": {
+    "display_name": "Demo: NORM (07)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 13506,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.875947892665863,
+      "MI": 0.040528878569602966,
+      "STTC": 0.17773215472698212,
+      "CD": 0.2073478102684021,
+      "HYP": 0.3767079710960388
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 16,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_norm_08_12x5000.npy": {
+    "display_name": "Demo: NORM (08)",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 8790,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.8784223794937134,
+      "MI": 0.012349720112979412,
+      "STTC": 0.00527579803019762,
+      "CD": 0.7284068465232849,
+      "HYP": 0.18823811411857605
+    },
+    "positive_labels_at_threshold": [
+      "NORM",
+      "CD"
+    ],
+    "rpeaks_count": 10,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_01_12x5000.npy": {
+    "display_name": "Demo: MI (01)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 4510,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.07592353969812393,
+      "MI": 0.9713631868362427,
+      "STTC": 0.20456309616565704,
+      "CD": 0.13111606240272522,
+      "HYP": 0.6052959561347961
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "HYP"
+    ],
+    "rpeaks_count": 17,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_02_12x5000.npy": {
+    "display_name": "Demo: MI (02)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 11094,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.007159150205552578,
+      "MI": 0.9718035459518433,
+      "STTC": 0.7383241057395935,
+      "CD": 0.19376114010810852,
+      "HYP": 0.20748363435268402
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC"
+    ],
+    "rpeaks_count": 12,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_03_12x5000.npy": {
+    "display_name": "Demo: MI (03)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 1130,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.00555843161419034,
+      "MI": 0.9798107743263245,
+      "STTC": 0.7092569470405579,
+      "CD": 0.3787519931793213,
+      "HYP": 0.44972658157348633
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC"
+    ],
+    "rpeaks_count": 16,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_04_12x5000.npy": {
+    "display_name": "Demo: MI (04)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 20146,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.007687727455049753,
+      "MI": 0.9827389717102051,
+      "STTC": 0.6262810826301575,
+      "CD": 0.34373968839645386,
+      "HYP": 0.568817675113678
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 12,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_05_12x5000.npy": {
+    "display_name": "Demo: MI (05)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 14140,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.008881591260433197,
+      "MI": 0.9467588067054749,
+      "STTC": 0.5132701992988586,
+      "CD": 0.6374790668487549,
+      "HYP": 0.25529029965400696
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD"
+    ],
+    "rpeaks_count": 20,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_06_12x5000.npy": {
+    "display_name": "Demo: MI (06)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 19687,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.003613092238083482,
+      "MI": 0.9522921442985535,
+      "STTC": 0.6094797253608704,
+      "CD": 0.8205686211585999,
+      "HYP": 0.34059321880340576
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD"
+    ],
+    "rpeaks_count": 16,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_07_12x5000.npy": {
+    "display_name": "Demo: MI (07)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 9933,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.6677522659301758,
+      "MI": 0.8192117810249329,
+      "STTC": 0.024128837510943413,
+      "CD": 0.0700896605849266,
+      "HYP": 0.0434827096760273
+    },
+    "positive_labels_at_threshold": [
+      "NORM",
+      "MI"
+    ],
+    "rpeaks_count": 21,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_mi_08_12x5000.npy": {
+    "display_name": "Demo: MI (08)",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 17917,
+    "ground_truth_vector": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.002094451105222106,
+      "MI": 0.9364755749702454,
+      "STTC": 0.7006216049194336,
+      "CD": 0.8313488960266113,
+      "HYP": 0.6681386232376099
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_01_12x5000.npy": {
+    "display_name": "Demo: STTC (01)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 16433,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.10058773308992386,
+      "MI": 0.14795133471488953,
+      "STTC": 0.9634082913398743,
+      "CD": 0.26869603991508484,
+      "HYP": 0.44662395119667053
+    },
+    "positive_labels_at_threshold": [
+      "STTC"
+    ],
+    "rpeaks_count": 20,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_02_12x5000.npy": {
+    "display_name": "Demo: STTC (02)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 18139,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.011351440101861954,
+      "MI": 0.48989778757095337,
+      "STTC": 0.969826877117157,
+      "CD": 0.47067537903785706,
+      "HYP": 0.5645186305046082
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 14,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_03_12x5000.npy": {
+    "display_name": "Demo: STTC (03)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 8833,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.137957364320755,
+      "MI": 0.14681702852249146,
+      "STTC": 0.9434336423873901,
+      "CD": 0.21478687226772308,
+      "HYP": 0.5597317814826965
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 16,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_04_12x5000.npy": {
+    "display_name": "Demo: STTC (04)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 12910,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.028728997334837914,
+      "MI": 0.3648500144481659,
+      "STTC": 0.9747259020805359,
+      "CD": 0.27672621607780457,
+      "HYP": 0.6921221613883972
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 18,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_05_12x5000.npy": {
+    "display_name": "Demo: STTC (05)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 12689,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      1
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.03485886752605438,
+      "MI": 0.1407463699579239,
+      "STTC": 0.9812104105949402,
+      "CD": 0.14004625380039215,
+      "HYP": 0.7030795812606812
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 17,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_06_12x5000.npy": {
+    "display_name": "Demo: STTC (06)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 19749,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.09687808156013489,
+      "MI": 0.16291214525699615,
+      "STTC": 0.9479833245277405,
+      "CD": 0.32531407475471497,
+      "HYP": 0.7150553464889526
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 20,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_07_12x5000.npy": {
+    "display_name": "Demo: STTC (07)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 4927,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.023026281967759132,
+      "MI": 0.31917813420295715,
+      "STTC": 0.8996725678443909,
+      "CD": 0.8362831473350525,
+      "HYP": 0.4359109401702881
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "CD"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_sttc_08_12x5000.npy": {
+    "display_name": "Demo: STTC (08)",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 632,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.30726227164268494,
+      "MI": 0.29637253284454346,
+      "STTC": 0.8043321967124939,
+      "CD": 0.23543411493301392,
+      "HYP": 0.699052631855011
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 19,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_01_12x5000.npy": {
+    "display_name": "Demo: CD (01)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 10738,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.44258278608322144,
+      "MI": 0.03239225223660469,
+      "STTC": 0.010832581669092178,
+      "CD": 0.9692023396492004,
+      "HYP": 0.3994237184524536
+    },
+    "positive_labels_at_threshold": [
+      "CD"
+    ],
+    "rpeaks_count": 21,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_02_12x5000.npy": {
+    "display_name": "Demo: CD (02)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 3455,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.003620917908847332,
+      "MI": 0.8444634079933167,
+      "STTC": 0.16904668509960175,
+      "CD": 0.9923365712165833,
+      "HYP": 0.4669507145881653
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "CD"
+    ],
+    "rpeaks_count": 16,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_03_12x5000.npy": {
+    "display_name": "Demo: CD (03)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 16885,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.010549597442150116,
+      "MI": 0.8883162140846252,
+      "STTC": 0.06383419781923294,
+      "CD": 0.9795954823493958,
+      "HYP": 0.30605149269104004
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "CD"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_04_12x5000.npy": {
+    "display_name": "Demo: CD (04)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 7992,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.003703086404129863,
+      "MI": 0.3843866288661957,
+      "STTC": 0.7151355147361755,
+      "CD": 0.9780439734458923,
+      "HYP": 0.5628686547279358
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_05_12x5000.npy": {
+    "display_name": "Demo: CD (05)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 21090,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.001794551033526659,
+      "MI": 0.7457892894744873,
+      "STTC": 0.26274141669273376,
+      "CD": 0.9805089235305786,
+      "HYP": 0.6107488870620728
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 13,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_06_12x5000.npy": {
+    "display_name": "Demo: CD (06)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 4178,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.002607910428196192,
+      "MI": 0.8160193562507629,
+      "STTC": 0.6150730848312378,
+      "CD": 0.9542562365531921,
+      "HYP": 0.4080902338027954
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD"
+    ],
+    "rpeaks_count": 18,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_07_12x5000.npy": {
+    "display_name": "Demo: CD (07)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 7639,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.0014255497371777892,
+      "MI": 0.7547624707221985,
+      "STTC": 0.6429092288017273,
+      "CD": 0.9633585214614868,
+      "HYP": 0.6603235602378845
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 11,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_cd_08_12x5000.npy": {
+    "display_name": "Demo: CD (08)",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 6250,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.001245349645614624,
+      "MI": 0.9111835360527039,
+      "STTC": 0.7130011320114136,
+      "CD": 0.916647732257843,
+      "HYP": 0.5430906414985657
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 14,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_01_12x5000.npy": {
+    "display_name": "Demo: HYP (01)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 7833,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.5085533857345581,
+      "MI": 0.05354157090187073,
+      "STTC": 0.3754119575023651,
+      "CD": 0.13445134460926056,
+      "HYP": 0.8879042863845825
+    },
+    "positive_labels_at_threshold": [
+      "NORM",
+      "HYP"
+    ],
+    "rpeaks_count": 24,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_02_12x5000.npy": {
+    "display_name": "Demo: HYP (02)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 17140,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.10729046165943146,
+      "MI": 0.5387635827064514,
+      "STTC": 0.7093391418457031,
+      "CD": 0.46057242155075073,
+      "HYP": 0.9676737785339355
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 11,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_03_12x5000.npy": {
+    "display_name": "Demo: HYP (03)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 4618,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.05425261706113815,
+      "MI": 0.5807272791862488,
+      "STTC": 0.7314939498901367,
+      "CD": 0.4186467230319977,
+      "HYP": 0.9849001169204712
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 14,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_04_12x5000.npy": {
+    "display_name": "Demo: HYP (04)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 11827,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.10698391497135162,
+      "MI": 0.05084235966205597,
+      "STTC": 0.6492019295692444,
+      "CD": 0.6208957433700562,
+      "HYP": 0.9349573850631714
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 19,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_05_12x5000.npy": {
+    "display_name": "Demo: HYP (05)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 12365,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.04615560173988342,
+      "MI": 0.21302570402622223,
+      "STTC": 0.93563312292099,
+      "CD": 0.21315303444862366,
+      "HYP": 0.9639072418212891
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "HYP"
+    ],
+    "rpeaks_count": 20,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_06_12x5000.npy": {
+    "display_name": "Demo: HYP (06)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 8275,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.010613829828798771,
+      "MI": 0.09062255918979645,
+      "STTC": 0.9357119202613831,
+      "CD": 0.7163674831390381,
+      "HYP": 0.9555907845497131
+    },
+    "positive_labels_at_threshold": [
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 15,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_07_12x5000.npy": {
+    "display_name": "Demo: HYP (07)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 4247,
+    "ground_truth_vector": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.022488107904791832,
+      "MI": 0.7982451915740967,
+      "STTC": 0.8685416579246521,
+      "CD": 0.5464804768562317,
+      "HYP": 0.9301192760467529
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 14,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  },
+  "demo_hyp_08_12x5000.npy": {
+    "display_name": "Demo: HYP (08)",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "threshold_used": 0.5,
+    "ptbxl_index": 14496,
+    "ground_truth_vector": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.005368520505726337,
+      "MI": 0.7804692387580872,
+      "STTC": 0.9415222406387329,
+      "CD": 0.7740452885627747,
+      "HYP": 0.947330117225647
+    },
+    "positive_labels_at_threshold": [
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "rpeaks_count": 22,
+    "selection_rule": "GT contains label AND model top_label==label AND prob>=threshold",
+    "notes": "Auto-selected to match model output to ground truth as closely as possible."
+  }
+}
