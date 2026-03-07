@@ -7,3 +7,4 @@ torch
 wfdb
 
 plotly>=5.24.1
+huggingface_hub

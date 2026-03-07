@@ -30,10 +30,74 @@ from cardioai_infer import (
     CLASS_NAMES,
 )
 
+
+# =========================================================
+# HF asset download (model + demos) to avoid pushing binaries
+# =========================================================
+from huggingface_hub import hf_hub_download
+
+HF_MODEL_REPO = "grettezybelle/cardioai-model"
+HF_DEMO_REPO  = "grettezybelle/cardioai-demos"
+
+# local cache folder (created inside the app directory)
+ASSETS_DIR = Path(__file__).parent / "assets"
+ASSETS_DIR.mkdir(exist_ok=True)
+
+@st.cache_resource
+def ensure_assets() -> tuple[Path, Path, Path]:
+    """
+    Downloads:
+      - model checkpoint into assets/
+      - demo_manifest.json into assets/demo/
+      - demo_*.npy into assets/demo/
+
+    Returns:
+      model_path, demo_dir, demo_manifest_path
+    """
+    demo_dir = ASSETS_DIR / "demo"
+    demo_dir.mkdir(exist_ok=True)
+
+    # 1) model
+    model_local = hf_hub_download(
+        repo_id=HF_MODEL_REPO,
+        filename="best_hybrid_final.pt",
+        local_dir=str(ASSETS_DIR),
+        local_dir_use_symlinks=False,
+    )
+    model_path = Path(model_local)
+
+    # 2) manifest
+    manifest_local = hf_hub_download(
+        repo_id=HF_DEMO_REPO,
+        filename="demo_manifest.json",
+        local_dir=str(demo_dir),
+        local_dir_use_symlinks=False,
+    )
+    demo_manifest_path = Path(manifest_local)
+
+    # 3) download all demo files listed in manifest
+    try:
+        manifest = json.loads(demo_manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        manifest = {}
+
+    for fname in manifest.keys():
+        if fname.endswith(".npy"):
+            hf_hub_download(
+                repo_id=HF_DEMO_REPO,
+                filename=fname,
+                local_dir=str(demo_dir),
+                local_dir_use_symlinks=False,
+            )
+
+    return model_path, demo_dir, demo_manifest_path
+
 # =========================================================
 # Paths
 # =========================================================
 APP_DIR = Path(__file__).parent
+
+# Default (local dev) paths — will be overwritten if HF assets are available
 MODEL_PATH = APP_DIR / "models" / "best_hybrid_final.pt"
 DEMO_DIR = APP_DIR / "demo"
 DEMO_MANIFEST_PATH = DEMO_DIR / "demo_manifest.json"
@@ -48,6 +112,19 @@ DEFAULT_FS = 500
 # Streamlit config
 # =========================================================
 st.set_page_config(page_title="CardioAI – ECG Explorer", layout="wide")
+
+# =========================================================
+# Prefer HF-downloaded assets if available
+# =========================================================
+try:
+    model_p, demo_p, manifest_p = ensure_assets()
+    MODEL_PATH = model_p
+    DEMO_DIR = demo_p
+    DEMO_MANIFEST_PATH = manifest_p
+except Exception as e:
+    # If offline / HF unreachable, fallback to local folders
+    st.sidebar.warning(f"HF assets not loaded, using local files. ({e})")
+
 
 # =========================================================
 # Small compatibility helper (Streamlit width changes)
