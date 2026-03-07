@@ -497,10 +497,13 @@ def plot_12_lead_plotly(x12, title="ECG used for inference", fs=500, theme="Ligh
             hovertemplate=f"{lead}<br>t=%{{x:.3f}} s<br>amp=%{{y:.3f}}<extra></extra>",
         ))
     fig.update_layout(
-        title=title, template=template, height=720,
-        margin=dict(l=40, r=20, t=50, b=40),
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
-        xaxis_title="Time (s)", yaxis_title="Lead (offset display)",
+        title=title,
+        template=template,
+        height=760,
+        margin=dict(l=70, r=20, t=50, b=40),
+        showlegend=False,
+        xaxis_title="Time (s)",
+        yaxis_title="Leads (offset display)",
     )
     fig.update_yaxes(tickmode="array", tickvals=offsets, ticktext=LEAD_NAMES, showgrid=True, zeroline=False)
     fig.update_xaxes(showgrid=True)
@@ -587,38 +590,67 @@ def plot_probability_bars_matplotlib(probs_dict, threshold=0.5, theme="Light"):
     items = sorted(probs_dict.items(), key=lambda x: x[1], reverse=True)
     labels = [k for k, _ in items]
     values = [float(v) for _, v in items]
-    fig, ax = plt.subplots(figsize=(8, 3.4))
+
+    fig, ax = plt.subplots(figsize=(8.5, 3.8))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
+
     y = np.arange(len(labels))
-    ax.barh(y, values)
-    ax.axvline(threshold, linestyle="--", linewidth=1.2)
+    bars = ax.barh(y, values)
+
+    ax.axvline(threshold, linestyle="--", linewidth=1.4, color=colors["text"], alpha=0.7)
+    ax.text(threshold + 0.01, len(labels) - 0.6, f"Threshold = {threshold:.2f}",
+            fontsize=9, color=colors["text"], va="center")
+
     ax.set_yticks(y)
     ax.set_yticklabels(labels, color=colors["text"])
-    ax.set_xlim(0, 1)
+    ax.set_xlim(0, 1.08)
     ax.set_xlabel("Probability", color=colors["text"])
-    ax.set_title("Class probabilities", color=colors["text"])
+    ax.set_title("Class probabilities", color=colors["text"], pad=10)
     ax.tick_params(axis="x", colors=colors["text"])
     ax.tick_params(axis="y", colors=colors["text"])
     ax.invert_yaxis()
+    ax.grid(axis="x", alpha=0.20, color=colors["grid"])
+
+    for bar, v in zip(bars, values):
+        ax.text(min(v + 0.02, 1.03), bar.get_y() + bar.get_height()/2,
+                f"{v:.3f}", va="center", ha="left", fontsize=9, color=colors["text"])
+
     for spine in ax.spines.values():
         spine.set_color(colors["text"])
+
     fig.tight_layout()
     return fig
 
 def plot_bar(values, labels, title, ylabel, theme="Light"):
     colors = _fig_colors(theme)
-    fig, ax = plt.subplots(figsize=(8, 3.0))
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.2))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
-    ax.bar(labels, values)
-    ax.set_title(title, color=colors["text"])
-    ax.set_ylabel(ylabel, color=colors["text"])
-    ax.set_xlabel("Lead", color=colors["text"])
-    ax.tick_params(axis="x", rotation=45, colors=colors["text"])
+
+    y = np.arange(len(labels))
+    bars = ax.barh(y, values)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, color=colors["text"])
+    ax.invert_yaxis()
+    ax.set_title(title, color=colors["text"], pad=10)
+    ax.set_xlabel(ylabel, color=colors["text"])
+    ax.tick_params(axis="x", colors=colors["text"])
     ax.tick_params(axis="y", colors=colors["text"])
+    ax.grid(axis="x", alpha=0.20, color=colors["grid"])
+
+    vmax = max(values) if len(values) else 1.0
+    ax.set_xlim(0, vmax * 1.15 if vmax > 0 else 1)
+
+    for bar, v in zip(bars, values):
+        ax.text(bar.get_width() + vmax * 0.02, bar.get_y() + bar.get_height()/2,
+                f"{v:.2f}", va="center", fontsize=9, color=colors["text"])
+
     for spine in ax.spines.values():
         spine.set_color(colors["text"])
+
     fig.tight_layout()
     return fig
 
@@ -626,82 +658,125 @@ def plot_quality_metrics(metrics: dict, theme="Light"):
     colors = _fig_colors(theme)
     labels = list(metrics.keys())
     values = list(metrics.values())
-    fig, ax = plt.subplots(figsize=(8, 3.0))
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.0))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
-    ax.bar(labels, values)
-    ax.set_ylim(0, 1.05)
-    ax.set_title("Quality-check metrics", color=colors["text"])
-    ax.set_ylabel("Normalized score", color=colors["text"])
-    ax.tick_params(axis="x", rotation=20, colors=colors["text"])
+
+    y = np.arange(len(labels))
+    bars = ax.barh(y, values)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, color=colors["text"])
+    ax.invert_yaxis()
+    ax.set_xlim(0, 1.05)
+    ax.set_title("Quality-check metrics", color=colors["text"], pad=10)
+    ax.set_xlabel("Normalized score", color=colors["text"])
+    ax.tick_params(axis="x", colors=colors["text"])
     ax.tick_params(axis="y", colors=colors["text"])
+    ax.grid(axis="x", alpha=0.20, color=colors["grid"])
+
+    for bar, v in zip(bars, values):
+        ax.text(min(v + 0.02, 1.02), bar.get_y() + bar.get_height()/2,
+                f"{v:.2f}", va="center", fontsize=9, color=colors["text"])
+
     for spine in ax.spines.values():
         spine.set_color(colors["text"])
-    for i, v in enumerate(values):
-        ax.text(i, min(v + 0.03, 1.02), f"{v:.2f}", ha="center", fontsize=9, color=colors["text"])
+
     fig.tight_layout()
     return fig
 
 def plot_ecg_education_figure(theme="Light"):
     """
-    Educational guide with NORMAL timing hints in seconds (s) and milliseconds (ms).
-    Includes ST note: usually judged by level/shape; duration varies with HR.
+    Cleaner ECG education figure using Gestalt principles:
+    - top panel: waveform + part labels
+    - bottom panel: interval bars + timing notes
+    - reduced overlap, better hierarchy, grouped content
     """
     colors = _fig_colors(theme)
-    x = np.linspace(0, 1, 800)
+
+    x = np.linspace(0, 1, 1000)
     y = np.zeros_like(x)
 
     def gauss(mu, sigma, amp):
         return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
-    y += gauss(0.18, 0.02, 0.18)    # P
-    y += gauss(0.37, 0.006, -0.25)  # Q
-    y += gauss(0.40, 0.004, 1.25)   # R
-    y += gauss(0.43, 0.008, -0.45)  # S
-    y += gauss(0.70, 0.05, 0.35)    # T
+    # Stylized ECG
+    y += gauss(0.18, 0.020, 0.18)    # P
+    y += gauss(0.37, 0.006, -0.25)   # Q
+    y += gauss(0.40, 0.004, 1.25)    # R
+    y += gauss(0.43, 0.008, -0.45)   # S
+    y += gauss(0.70, 0.050, 0.35)    # T
 
-    fig, ax = plt.subplots(figsize=(11, 4.3))
+    fig = plt.figure(figsize=(12, 5.8), constrained_layout=True)
     fig.patch.set_facecolor(colors["fig"])
+    gs = fig.add_gridspec(2, 1, height_ratios=[3.4, 1.5])
+
+    ax = fig.add_subplot(gs[0])
+    ax2 = fig.add_subplot(gs[1], sharex=ax)
+
+    # ---------------- Top: waveform ----------------
     ax.set_facecolor(colors["ax"])
-    ax.plot(x, y, linewidth=2.6)
-    ax.axhline(0, linestyle="--", linewidth=1.0, alpha=0.6)
+    ax.plot(x, y, linewidth=2.8, color="#1f77b4")
+    ax.axhline(0, linestyle="--", linewidth=1.0, alpha=0.45, color=colors["grid"])
 
-    # Labels
-    ax.annotate("P wave", xy=(0.18, 0.18), xytext=(0.16, 0.62),
-                arrowprops=dict(arrowstyle="->"), fontsize=10, ha="center", color=colors["text"])
-    ax.annotate("QRS complex", xy=(0.40, 1.08), xytext=(0.40, 1.55),
-                arrowprops=dict(arrowstyle="->"), fontsize=10, ha="center", color=colors["text"])
-    ax.annotate("ST segment", xy=(0.54, 0.04), xytext=(0.54, 0.48),
-                arrowprops=dict(arrowstyle="->"), fontsize=10, ha="center", color=colors["text"])
-    ax.annotate("T wave", xy=(0.70, 0.36), xytext=(0.70, 0.86),
-                arrowprops=dict(arrowstyle="->"), fontsize=10, ha="center", color=colors["text"])
+    # Direct labels with short arrows
+    ann_kw = dict(
+        arrowprops=dict(arrowstyle="->", lw=1.2, color=colors["text"]),
+        fontsize=10,
+        color=colors["text"],
+        ha="center",
+        va="bottom",
+    )
 
-    # Timing (seconds)
-    ax.text(0.05, -0.72, "P duration: ~0.08–0.11 s (<0.12 s)", fontsize=9, color=colors["text"])
-    ax.text(0.28, -0.72, "PR: 0.12–0.20 s (120–200 ms)", fontsize=9, color=colors["text"])
-    ax.text(0.32, 1.34, "QRS: <0.12 s (typically 80–110 ms)", fontsize=9, color=colors["text"])
-    ax.text(0.58, -0.72, "QT: ~0.35–0.44 s (varies with HR)", fontsize=9, color=colors["text"])
-    ax.text(0.60, -0.92, "ST: duration varies; judged mainly by level/shape", fontsize=8.8, color=colors["text"])
+    ax.annotate("P wave", xy=(0.18, 0.18), xytext=(0.14, 0.52), **ann_kw)
+    ax.annotate("QRS complex", xy=(0.40, 1.15), xytext=(0.42, 1.62), **ann_kw)
+    ax.annotate("ST segment", xy=(0.54, 0.03), xytext=(0.57, 0.36), **ann_kw)
+    ax.annotate("T wave", xy=(0.70, 0.35), xytext=(0.72, 0.82), **ann_kw)
 
-    # interval bars
-    ax.plot([0.12, 0.36], [-0.56, -0.56], linewidth=2.0)
-    ax.text(0.24, -0.50, "PR", fontsize=9, ha="center", color=colors["text"])
+    # Subtle region hint for ST
+    ax.plot([0.46, 0.60], [0.01, 0.01], linewidth=4, alpha=0.18, solid_capstyle="round")
 
-    ax.plot([0.385, 0.445], [1.18, 1.18], linewidth=2.0)
-    ax.text(0.415, 1.24, "QRS", fontsize=9, ha="center", color=colors["text"])
-
-    ax.plot([0.34, 0.82], [-1.02, -1.02], linewidth=2.0)
-    ax.text(0.58, -0.96, "QT", fontsize=9, ha="center", color=colors["text"])
-
-    ax.set_title("ECG parts + typical normal timing (educational)", color=colors["text"])
-    ax.set_xticks([])
+    ax.set_title("ECG parts and typical normal timing", fontsize=16, color=colors["text"], pad=10)
     ax.set_yticks([])
-    ax.set_ylim(-1.15, 1.8)
+    ax.set_xticks([])
+    ax.set_ylim(-0.65, 1.8)
+
     for spine in ax.spines.values():
         spine.set_color(colors["text"])
-    fig.tight_layout()
-    return fig
 
+    # ---------------- Bottom: grouped interval bars ----------------
+    ax2.set_facecolor(colors["ax"])
+    ax2.set_ylim(0, 1)
+    ax2.set_yticks([])
+    ax2.set_xticks([])
+
+    for spine in ax2.spines.values():
+        spine.set_visible(False)
+
+    def interval_bar(axh, x0, x1, y, label, note, color):
+        axh.plot([x0, x1], [y, y], color=color, linewidth=3, solid_capstyle="round")
+        axh.plot([x0, x0], [y - 0.04, y + 0.04], color=color, linewidth=1.5)
+        axh.plot([x1, x1], [y - 0.04, y + 0.04], color=color, linewidth=1.5)
+        axh.text((x0 + x1) / 2, y + 0.08, label, ha="center", va="bottom",
+                 fontsize=10, fontweight="bold", color=colors["text"])
+        axh.text((x0 + x1) / 2, y - 0.10, note, ha="center", va="top",
+                 fontsize=9, color=colors["text"])
+
+    interval_bar(ax2, 0.12, 0.36, 0.78, "PR interval", "0.12–0.20 s (120–200 ms)", "#ff7f0e")
+    interval_bar(ax2, 0.385, 0.445, 0.52, "QRS duration", "< 0.12 s (typically 80–110 ms)", "#2ca02c")
+    interval_bar(ax2, 0.34, 0.82, 0.26, "QT interval", "~0.35–0.44 s (varies with HR)", "#d62728")
+
+    ax2.text(
+        0.02, 0.02,
+        "P duration: ~0.08–0.11 s (<0.12 s)   |   ST segment: judged mainly by level/shape rather than one fixed duration",
+        fontsize=9,
+        color=colors["text"],
+        ha="left",
+        va="bottom"
+    )
+
+    return fig
 # =========================================================
 # Cached model
 # =========================================================
