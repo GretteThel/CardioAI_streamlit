@@ -34,7 +34,12 @@ from cardioai_infer import (
 # =========================================================
 # HF asset download (model + demos) to avoid pushing binaries
 # =========================================================
-from huggingface_hub import hf_hub_download
+try:
+    from huggingface_hub import hf_hub_download
+    HAVE_HF_HUB = True
+except Exception:
+    hf_hub_download = None
+    HAVE_HF_HUB = False
 
 HF_MODEL_REPO = "grettezybelle/cardioai-model"
 HF_DEMO_REPO  = "grettezybelle/cardioai-demos"
@@ -45,19 +50,12 @@ ASSETS_DIR.mkdir(exist_ok=True)
 
 @st.cache_resource
 def ensure_assets() -> tuple[Path, Path, Path]:
-    """
-    Downloads:
-      - model checkpoint into assets/
-      - demo_manifest.json into assets/demo/
-      - demo_*.npy into assets/demo/
+    if not HAVE_HF_HUB:
+        raise ImportError("huggingface_hub is not installed")
 
-    Returns:
-      model_path, demo_dir, demo_manifest_path
-    """
     demo_dir = ASSETS_DIR / "demo"
     demo_dir.mkdir(exist_ok=True)
 
-    # 1) model
     model_local = hf_hub_download(
         repo_id=HF_MODEL_REPO,
         filename="best_hybrid_final.pt",
@@ -66,7 +64,6 @@ def ensure_assets() -> tuple[Path, Path, Path]:
     )
     model_path = Path(model_local)
 
-    # 2) manifest
     manifest_local = hf_hub_download(
         repo_id=HF_DEMO_REPO,
         filename="demo_manifest.json",
@@ -75,7 +72,6 @@ def ensure_assets() -> tuple[Path, Path, Path]:
     )
     demo_manifest_path = Path(manifest_local)
 
-    # 3) download all demo files listed in manifest
     try:
         manifest = json.loads(demo_manifest_path.read_text(encoding="utf-8"))
     except Exception:
@@ -116,14 +112,20 @@ st.set_page_config(page_title="CardioAI – ECG Explorer", layout="wide")
 # =========================================================
 # Prefer HF-downloaded assets if available
 # =========================================================
-try:
-    model_p, demo_p, manifest_p = ensure_assets()
-    MODEL_PATH = model_p
-    DEMO_DIR = demo_p
-    DEMO_MANIFEST_PATH = manifest_p
-except Exception as e:
-    # If offline / HF unreachable, fallback to local folders
-    st.sidebar.warning(f"HF assets not loaded, using local files. ({e})")
+USE_HF_ASSETS = False
+
+if USE_HF_ASSETS:
+    try:
+        model_path, demo_dir, demo_manifest_path = ensure_assets()
+    except Exception as e:
+        st.sidebar.warning(f"HF assets not loaded, using local files. ({e})")
+        model_path = APP_DIR / "models" / "best_hybrid_final.pt"
+        demo_dir = APP_DIR / "demo"
+        demo_manifest_path = demo_dir / "demo_manifest.json"
+else:
+    model_path = APP_DIR / "models" / "best_hybrid_final.pt"
+    demo_dir = APP_DIR / "demo"
+    demo_manifest_path = demo_dir / "demo_manifest.json"
 
 
 # =========================================================
