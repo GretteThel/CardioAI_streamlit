@@ -48,12 +48,13 @@ UPLOAD_DIR = APP_DIR / "uploads"
 UPLOAD_INDEX_PATH = UPLOAD_DIR / "uploads_index.json"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-LOCAL_MODEL_PATH = APP_DIR / "models" / "best_hybrid_final.pt"
-LOCAL_DEMO_DIR = APP_DIR / "demo"
+LOCAL_MODEL_PATH = APP_DIR / "assets" / "best_hybrid_final.pt"
+LOCAL_DEMO_DIR = APP_DIR / "assets" / "demo"
 LOCAL_DEMO_MANIFEST_PATH = LOCAL_DEMO_DIR / "demo_manifest.json"
 
 HF_MODEL_REPO = "grettezybelle/cardioai-model"   # model repo
 HF_DEMO_REPO = "grettezybelle/cardioai-demos"    # dataset repo
+
 DEFAULT_FS = 500
 
 st.set_page_config(page_title="CardioAI – ECG Explorer", layout="wide")
@@ -155,21 +156,12 @@ def badge(text: str, kind: str) -> str:
 # =========================================================
 @st.cache_resource
 def ensure_assets() -> tuple[Path, Path, Path]:
-    """
-    Downloads:
-      - model checkpoint from Hugging Face model repo
-      - demo_manifest.json + demo_*.npy from Hugging Face dataset repo
-
-    Returns:
-      model_path, demo_dir, demo_manifest_path
-    """
     if not HAVE_HF_HUB:
         raise ImportError("huggingface_hub is not installed")
 
     demo_dir = ASSETS_DIR / "demo"
     demo_dir.mkdir(exist_ok=True)
 
-    # model repo
     model_local = hf_hub_download(
         repo_id=HF_MODEL_REPO,
         repo_type="model",
@@ -179,7 +171,6 @@ def ensure_assets() -> tuple[Path, Path, Path]:
     )
     model_path = Path(model_local)
 
-    # dataset repo
     manifest_local = hf_hub_download(
         repo_id=HF_DEMO_REPO,
         repo_type="dataset",
@@ -208,10 +199,6 @@ def ensure_assets() -> tuple[Path, Path, Path]:
 
 
 def resolve_assets(use_hf_assets: bool = True) -> tuple[Path, Path, Path, Optional[str]]:
-    """
-    Returns:
-      model_path, demo_dir, demo_manifest_path, asset_message
-    """
     model_path = LOCAL_MODEL_PATH
     demo_dir = LOCAL_DEMO_DIR
     demo_manifest_path = LOCAL_DEMO_MANIFEST_PATH
@@ -436,7 +423,7 @@ def build_quality_metrics(x_used: np.ndarray, rpeaks: np.ndarray, beats: np.ndar
 
 
 # =========================================================
-# Text helpers
+# Explanation builders
 # =========================================================
 def build_quick_summary(result, threshold):
     probs = result["probs"]
@@ -447,29 +434,29 @@ def build_quick_summary(result, threshold):
     positives = [k for k, v in preds.items() if v == 1]
 
     lines = []
-    lines.append(f"Top match: **{top}** with **{top_prob:.0%}** probability.")
+    lines.append(f"The model's strongest pattern match is **{top}** with **{top_prob:.0%}** confidence.")
 
     if positives:
-        lines.append("Above threshold: " + ", ".join(positives) + ".")
+        lines.append(f"At the current threshold (**{threshold:.2f}**), the label(s) flagged are: **{', '.join(positives)}**.")
     else:
-        lines.append("No label crossed the decision threshold.")
+        lines.append(f"At the current threshold (**{threshold:.2f}**), no class is formally flagged.")
 
     if mi_prob is not None:
         lines.append(
-            f"MI probability: **{mi_prob:.0%}**" +
-            (" (flagged)." if mi_prob >= threshold else " (not flagged).")
+            f"The **MI** score is **{mi_prob:.0%}**, "
+            + ("so it is above the threshold." if mi_prob >= threshold else "so it stays below the threshold.")
         )
 
     hr = result.get("measurements", {}).get("heart_rate_bpm", None)
     if hr is not None:
-        lines.append(f"Estimated heart rate: **{hr:.1f} bpm**.")
+        lines.append(f"The estimated heart rate is **{hr:.1f} bpm**.")
 
     if result.get("uncertainty_flag", False):
-        lines.append("Note: model certainty is lower for this sample.")
+        lines.append("Model certainty is lower than usual, so this result should be interpreted more cautiously.")
     else:
-        lines.append("The top label is relatively separated from competitors.")
+        lines.append("The top class is clearly separated from the next most likely class.")
 
-    lines.append("Decision-support only (not a diagnosis).")
+    lines.append("This is a decision-support output only and not a clinical diagnosis.")
     return "\n\n".join(lines)
 
 
@@ -489,25 +476,40 @@ def build_detailed_interpretation(result, threshold):
     applied = result.get("applied_preprocess", False)
 
     conf = "high" if top_prob >= 0.85 else "moderate" if top_prob >= 0.60 else "low"
+    clarity = "clear separation" if margin >= 0.20 else "limited separation"
 
     lines = []
-    lines.append(f"Top label: **{top_label}** (p={top_prob:.3f}, {conf} confidence).")
-    lines.append(f"Closest competitor: **{second_label}** (p={second_prob:.3f}).")
-    lines.append(f"Margin: **{margin:.3f}** " + ("(clearer)" if margin >= 0.20 else "(ambiguous)"))
+    lines.append(f"**Primary finding:** The strongest model output is **{top_label}** with probability **{top_prob:.3f}** ({conf} confidence).")
+    lines.append(f"**Nearest alternative:** **{second_label}** at **{second_prob:.3f}**.")
+    lines.append(f"**Confidence gap:** The difference between the top two classes is **{margin:.3f}**, which suggests **{clarity}**.")
 
     if pos:
-        lines.append(f"Labels ≥ {threshold:.2f}: " + ", ".join(pos))
+        lines.append(f"**Threshold result:** At **{threshold:.2f}**, the class(es) above threshold are **{', '.join(pos)}**.")
     else:
-        lines.append(f"No label ≥ {threshold:.2f}.")
+        lines.append(f"**Threshold result:** No class crosses **{threshold:.2f}**.")
 
+    signal_lines = []
     if hr is not None:
-        lines.append(f"HR (approx): {hr:.1f} bpm.")
+        signal_lines.append(f"heart rate ≈ **{hr:.1f} bpm**")
     if qrs is not None:
-        lines.append(f"QRS (approx): {qrs:.0f} ms.")
+        signal_lines.append(f"QRS width ≈ **{qrs:.0f} ms**")
     if st_dev is not None:
-        lines.append(f"ST deviation (approx, Lead II): {st_dev:.3f} (z-units).")
+        signal_lines.append(f"ST deviation in Lead II ≈ **{st_dev:.3f}** z-units")
+    if signal_lines:
+        lines.append("**Signal cues used for context:** " + "; ".join(signal_lines) + ".")
 
-    lines.append(f"Preprocessing applied: {applied}.")
+    if top_label == "CD" and qrs is not None:
+        lines.append("**Plain-language interpretation:** A conduction-disturbance prediction can align with broader or slower ventricular conduction patterns. The displayed QRS estimate helps the reader see whether ventricular activation may look wider than usual, but it is only an approximation.")
+    elif top_label == "MI":
+        lines.append("**Plain-language interpretation:** An MI prediction means the model found a pattern that resembles myocardial infarction examples in training data. This should always be confirmed clinically because model similarity is not the same as diagnosis.")
+    elif top_label == "STTC":
+        lines.append("**Plain-language interpretation:** An ST/T change prediction means the model sees repolarization-related patterns that may involve ST shape or T-wave shape. These findings depend strongly on context and clinical review.")
+    elif top_label == "HYP":
+        lines.append("**Plain-language interpretation:** A hypertrophy-related prediction means the model detected a pattern that resembles chamber enlargement or thickening examples seen during training, not a direct anatomical measurement.")
+    elif top_label == "NORM":
+        lines.append("**Plain-language interpretation:** A normal prediction means the overall waveform looked more similar to normal examples than to the abnormal categories tracked by this model.")
+
+    lines.append(f"**Preprocessing:** {'Applied' if applied else 'Not applied'}.")
     lines.append("_Decision-support summary only._")
     return "\n\n".join(lines)
 
@@ -673,9 +675,11 @@ def plot_probability_bars_matplotlib(probs_dict, threshold=0.5, theme="Light"):
 
 def plot_bar(values, labels, title, xlabel, theme="Light"):
     colors = _fig_colors(theme)
-    values = list(values)
+    values = np.asarray(list(values), dtype=float)
+    labels = list(labels)
 
-    fig, ax = plt.subplots(figsize=(8.7, 4.3))
+    fig_h = max(4.3, 0.42 * len(labels) + 1.2)
+    fig, ax = plt.subplots(figsize=(8.9, fig_h))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
 
@@ -690,13 +694,22 @@ def plot_bar(values, labels, title, xlabel, theme="Light"):
     ax.tick_params(axis="y", colors=colors["text"])
     ax.grid(axis="x", alpha=0.20, color=colors["grid"])
 
-    vmax = max(values) if len(values) else 1.0
-    xpad = vmax * 0.02 if vmax > 0 else 0.02
-    ax.set_xlim(0, vmax * 1.15 if vmax > 0 else 1)
+    vmin = float(values.min()) if len(values) else 0.0
+    vmax = float(values.max()) if len(values) else 1.0
+    span = max(vmax - vmin, 0.05)
+    left = min(0.0, vmin - 0.10 * span)
+    right = max(0.0, vmax + 0.18 * span)
+    ax.set_xlim(left, right)
 
     for bar, v in zip(bars, values):
-        ax.text(bar.get_width() + xpad, bar.get_y() + bar.get_height()/2,
-                f"{v:.2f}", va="center", fontsize=9, color=colors["text"])
+        if v >= 0:
+            x_txt = v + 0.02 * span
+            ha = "left"
+        else:
+            x_txt = v - 0.02 * span
+            ha = "right"
+        ax.text(x_txt, bar.get_y() + bar.get_height()/2, f"{v:.2f}",
+                va="center", ha=ha, fontsize=9, color=colors["text"])
 
     for spine in ax.spines.values():
         spine.set_color(colors["text"])
@@ -750,16 +763,11 @@ def plot_ecg_education_figure(theme="Light"):
     y += gauss(0.43, 0.008, -0.45)
     y += gauss(0.70, 0.050, 0.35)
 
-    fig = plt.figure(figsize=(12, 5.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(12, 6.2))
     fig.patch.set_facecolor(colors["fig"])
-    gs = fig.add_gridspec(2, 1, height_ratios=[3.4, 1.5])
-
-    ax = fig.add_subplot(gs[0])
-    ax2 = fig.add_subplot(gs[1], sharex=ax)
-
     ax.set_facecolor(colors["ax"])
     ax.plot(x, y, linewidth=2.8, color=colors["accent"])
-    ax.axhline(0, linestyle="--", linewidth=1.0, alpha=0.45, color=colors["grid"])
+    ax.axhline(0, linestyle="--", linewidth=1.0, alpha=0.35, color=colors["grid"])
 
     ann_kw = dict(
         arrowprops=dict(arrowstyle="->", lw=1.2, color=colors["text"]),
@@ -768,51 +776,88 @@ def plot_ecg_education_figure(theme="Light"):
         ha="center",
         va="bottom",
     )
-
-    ax.annotate("P wave", xy=(0.18, 0.18), xytext=(0.14, 0.52), **ann_kw)
-    ax.annotate("QRS complex", xy=(0.40, 1.15), xytext=(0.42, 1.62), **ann_kw)
+    ax.annotate("P wave", xy=(0.18, 0.18), xytext=(0.145, 0.52), **ann_kw)
+    ax.annotate("QRS complex", xy=(0.40, 1.15), xytext=(0.42, 1.58), **ann_kw)
     ax.annotate("ST segment", xy=(0.54, 0.03), xytext=(0.57, 0.36), **ann_kw)
-    ax.annotate("T wave", xy=(0.70, 0.35), xytext=(0.72, 0.82), **ann_kw)
+    ax.annotate("T wave", xy=(0.70, 0.35), xytext=(0.72, 0.78), **ann_kw)
 
-    ax.plot([0.46, 0.60], [0.01, 0.01], linewidth=4, alpha=0.18, solid_capstyle="round")
+    def interval_bar(x0, x1, y0, label, note, color):
+        ax.plot([x0, x1], [y0, y0], color=color, linewidth=2.6, solid_capstyle="round")
+        ax.plot([x0, x0], [y0 - 0.045, y0 + 0.045], color=color, linewidth=1.3)
+        ax.plot([x1, x1], [y0 - 0.045, y0 + 0.045], color=color, linewidth=1.3)
+        ax.text((x0 + x1) / 2, y0 + 0.08, label, ha="center", va="bottom",
+                fontsize=10, fontweight="bold", color=colors["text"])
+        ax.text((x0 + x1) / 2, y0 - 0.09, note, ha="center", va="top",
+                fontsize=9, color=colors["text"])
 
-    ax.set_title("ECG parts and typical normal timing", fontsize=16, color=colors["text"], pad=10)
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_ylim(-0.65, 1.8)
+    interval_bar(0.12, 0.36, -0.78, "PR interval", "0.12–0.20 s (120–200 ms)", "#ff7f0e")
+    interval_bar(0.385, 0.445, -1.08, "QRS duration", "< 0.12 s (typically 80–110 ms)", "#2ca02c")
+    interval_bar(0.34, 0.82, -1.40, "QT interval", "~0.35–0.44 s (varies with HR)", "#d62728")
 
-    for spine in ax.spines.values():
-        spine.set_color(colors["text"])
-
-    ax2.set_facecolor(colors["ax"])
-    ax2.set_ylim(0, 1)
-    ax2.set_yticks([])
-    ax2.set_xticks([])
-
-    for spine in ax2.spines.values():
-        spine.set_visible(False)
-
-    def interval_bar(axh, x0, x1, y0, label, note, color):
-        axh.plot([x0, x1], [y0, y0], color=color, linewidth=3, solid_capstyle="round")
-        axh.plot([x0, x0], [y0 - 0.04, y0 + 0.04], color=color, linewidth=1.5)
-        axh.plot([x1, x1], [y0 - 0.04, y0 + 0.04], color=color, linewidth=1.5)
-        axh.text((x0 + x1) / 2, y0 + 0.08, label, ha="center", va="bottom",
-                 fontsize=10, fontweight="bold", color=colors["text"])
-        axh.text((x0 + x1) / 2, y0 - 0.10, note, ha="center", va="top",
-                 fontsize=9, color=colors["text"])
-
-    interval_bar(ax2, 0.12, 0.36, 0.78, "PR interval", "0.12–0.20 s (120–200 ms)", "#ff7f0e")
-    interval_bar(ax2, 0.385, 0.445, 0.52, "QRS duration", "< 0.12 s (typically 80–110 ms)", "#2ca02c")
-    interval_bar(ax2, 0.34, 0.82, 0.26, "QT interval", "~0.35–0.44 s (varies with HR)", "#d62728")
-
-    ax2.text(
-        0.02, 0.02,
+    ax.text(
+        0.02,
+        -1.68,
         "P duration: ~0.08–0.11 s (<0.12 s)   |   ST segment: judged mainly by level/shape rather than one fixed duration",
         fontsize=9,
         color=colors["text"],
         ha="left",
-        va="bottom"
+        va="bottom",
     )
+
+    ax.set_title("ECG parts and typical normal timing", fontsize=16, color=colors["text"], pad=10)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_ylim(-1.85, 1.8)
+
+    for spine in ax.spines.values():
+        spine.set_color(colors["text"])
+    fig.tight_layout()
+    return fig
+
+
+def plot_signal_cue_overlay(x_used, rpeaks, measurements, theme="Light", fs=DEFAULT_FS, lead_idx=1):
+    colors = _fig_colors(theme)
+    sig = np.asarray(x_used[lead_idx], dtype=float)
+    t = np.arange(sig.shape[0]) / float(fs)
+
+    fig, ax = plt.subplots(figsize=(10, 3.2))
+    fig.patch.set_facecolor(colors["fig"])
+    ax.set_facecolor(colors["ax"])
+    ax.plot(t, sig, linewidth=1.2, color=colors["accent"])
+    ax.set_title("Lead II signal cues used for explanation", color=colors["text"], pad=10)
+    ax.set_xlabel("Time (s)", color=colors["text"])
+    ax.set_ylabel("Amplitude", color=colors["text"])
+    ax.tick_params(axis="x", colors=colors["text"])
+    ax.tick_params(axis="y", colors=colors["text"])
+    ax.grid(True, alpha=0.20, color=colors["grid"])
+
+    if rpeaks is not None and len(rpeaks) > 0:
+        shown = rpeaks[: min(8, len(rpeaks))]
+        ax.scatter(shown / float(fs), sig[shown], s=18, zorder=3)
+        for rp in shown:
+            ax.axvline(rp / float(fs), linestyle="--", linewidth=0.9, alpha=0.35)
+
+        qrs_ms = measurements.get("qrs_ms_est")
+        if qrs_ms is not None:
+            half_w = int(max(1, round((qrs_ms / 1000.0) * fs / 2)))
+            rp = int(shown[len(shown) // 2])
+            left = max(0, rp - half_w)
+            right = min(len(sig) - 1, rp + half_w)
+            ax.axvspan(left / float(fs), right / float(fs), alpha=0.15)
+            ax.text((left + right) / 2 / float(fs), ax.get_ylim()[1] * 0.85,
+                    "Approx QRS window", ha="center", va="top", fontsize=9, color=colors["text"])
+
+            st_idx = min(len(sig) - 1, rp + int(0.08 * fs))
+            ax.scatter([st_idx / float(fs)], [sig[st_idx]], s=28, zorder=4)
+            ax.annotate("Approx ST point",
+                        xy=(st_idx / float(fs), sig[st_idx]),
+                        xytext=(st_idx / float(fs) + 0.18, sig[st_idx]),
+                        arrowprops=dict(arrowstyle="->", lw=1.0, color=colors["text"]),
+                        fontsize=9, color=colors["text"])
+
+    for spine in ax.spines.values():
+        spine.set_color(colors["text"])
+    fig.tight_layout()
     return fig
 
 
@@ -952,31 +997,171 @@ def resolve_input_source(demo_dir: Path, demo_manifest_path: Path):
         st.info(f"Using demo sample: {selected_demo}")
         if "recommended_apply_preprocess" in demo_meta:
             st.session_state["apply_preprocess"] = bool(demo_meta["recommended_apply_preprocess"])
-        return x12_raw, uploaded_name, demo_meta, demo_manifest
+        return x12_raw, uploaded_name, demo_meta
 
-    elif selected_saved:
+    if selected_saved:
         x12_raw = load_saved_npy(selected_saved)
         uploaded_name = selected_saved
         st.info(f"Using saved upload: {selected_saved}")
-        return x12_raw, uploaded_name, demo_meta, demo_manifest
+        return x12_raw, uploaded_name, demo_meta
 
+    uploaded = st.file_uploader("Upload a .npy ECG file with shape (12, 5000)", type=["npy"])
+    if uploaded is None:
+        st.info("Choose a demo, load a saved upload, or upload a .npy ECG.")
+        st.stop()
+
+    uploaded_name = uploaded.name
+    x12_raw = load_uploaded_npy(uploaded)
+
+    if st.session_state.get("remember_upload", True):
+        try:
+            rec = persist_uploaded_npy(uploaded)
+            st.session_state["saved_upload_name"] = rec["saved_name"]
+        except Exception:
+            pass
+
+    return x12_raw, uploaded_name, demo_meta
+
+
+# =========================================================
+# Tab renderers
+# =========================================================
+def render_explanation_tab(theme, threshold, result, qc, qc_ok, quality_metrics, x12_raw, beats, rpeaks, x_used, apply_preprocess):
+    st.subheader("Summary")
+    st.write(build_quick_summary(result, threshold))
+
+    st.subheader("Details")
+    st.write(build_detailed_interpretation(result, threshold))
+
+    if result.get("template_explanation"):
+        with st.expander("Rule-based explanation (template)"):
+            st.write(result["template_explanation"])
+
+    st.subheader("Visual signal cues")
+    st.pyplot(plot_signal_cue_overlay(x_used, rpeaks, result.get("measurements", {}), theme=theme))
+    st.markdown(
+        "<div class='small-note'>This overlay marks approximate signal landmarks used to make the explanation easier to follow. It is not a clinically validated abnormality locator.</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.subheader("Signal-based view")
+    st.write("Most active leads in extracted beats:", ", ".join(result["top_active_leads"]))
+    st.pyplot(plot_bar(result["lead_activity"], LEAD_NAMES, "Lead activity in extracted beats", "Normalized activity", theme=theme))
+    st.markdown(
+        "<div class='small-note'>Higher activity = larger average absolute signal in extracted beats, not diagnosis.</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.subheader("Explainability (XAI)")
+    st.markdown("<div class='small-note'>These explain model behavior, not clinical causality.</div>", unsafe_allow_html=True)
+    xai = result.get("xai", {})
+
+    if xai.get("occlusion_delta_toplabel") is not None:
+        st.write("**Lead occlusion sensitivity**")
+        st.pyplot(
+            plot_bar(
+                xai["occlusion_delta_toplabel"],
+                LEAD_NAMES,
+                "Occlusion sensitivity vs lead",
+                "Δ probability (base - occluded)",
+                theme=theme,
+            )
+        )
+        st.markdown(
+            "<div class='small-note'>Bigger positive values mean the model depended more on that lead. Near-zero or negative values mean removing that lead changed the prediction little or made it slightly stronger.</div>",
+            unsafe_allow_html=True,
+        )
+
+    if xai.get("ig_attr_toplabel") is not None:
+        st.write(f"**Integrated Gradients** (per-lead attribution; steps={xai.get('ig_steps', 16)})")
+        st.pyplot(
+            plot_bar(
+                xai["ig_attr_toplabel"],
+                LEAD_NAMES,
+                "Integrated Gradients attribution vs lead",
+                "Attribution (normalized)",
+                theme=theme,
+            )
+        )
+        st.markdown(
+            "<div class='small-note'>Larger attribution means the model assigned more influence to that lead for the top prediction. More IG steps usually gives smoother attribution but slower runtime.</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.subheader("Quality checks")
+    if qc_ok:
+        st.success("QC passed (basic checks).")
     else:
-        uploaded = st.file_uploader("Upload a .npy ECG file with shape (12, 5000)", type=["npy"])
-        if uploaded is None:
-            st.info("Choose a demo, load a saved upload, or upload a .npy ECG.")
-            st.stop()
+        st.warning("QC reported issues:")
+        for msg in qc.get("issues", []):
+            st.write("-", msg)
 
-        uploaded_name = uploaded.name
-        x12_raw = load_uploaded_npy(uploaded)
+    st.pyplot(plot_quality_metrics(quality_metrics, theme=theme))
+    st.markdown(
+        "<div class='small-note'>Quality metrics summarize finiteness, non-flatness, spread, and R-peak coverage.</div>",
+        unsafe_allow_html=True,
+    )
 
-        if st.session_state.get("remember_upload", True):
-            try:
-                rec = persist_uploaded_npy(uploaded)
-                st.session_state["saved_upload_name"] = rec["saved_name"]
-            except Exception:
-                pass
+    with st.expander("Raw checks"):
+        st.write("Uploaded ECG shape:", x12_raw.shape)
+        st.write("Extracted beats shape:", beats.shape)
+        st.write("Task type:", result.get("task_type", "N/A"))
+        st.write("Applied preprocessing:", result.get("applied_preprocess", apply_preprocess))
+        st.write("Detected R-peaks:", len(rpeaks) if rpeaks is not None else 0)
+        st.write("Looks preprocessed / z-scored:", looks_preprocessed_zscored(x_used))
 
-        return x12_raw, uploaded_name, demo_meta, demo_manifest
+
+def render_education_tab(theme):
+    st.subheader("Understand the ECG terms")
+    st.caption("This panel is for non-experts. It shows the main ECG parts and typical normal timing.")
+
+    st.pyplot(plot_ecg_education_figure(theme=theme))
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**P wave**")
+        st.write("Atrial activation — the atria begin the heartbeat.")
+        st.markdown("**QRS complex**")
+        st.write("Ventricular activation — the main pumping chambers contract.")
+    with c2:
+        st.markdown("**ST segment**")
+        st.write("Early recovery phase after QRS; usually judged by level and shape.")
+        st.markdown("**T wave**")
+        st.write("Later ventricular recovery phase.")
+
+    st.markdown("**Typical normal timing ranges**")
+    timing_df = pd.DataFrame(
+        {
+            "Part": ["P duration", "PR interval", "QRS duration", "QT interval", "ST segment"],
+            "Typical value": ["0.08–0.11 s", "0.12–0.20 s", "0.08–0.11 s", "0.35–0.44 s", "Varies"],
+            "Note": ["Usually < 0.12 s", "120–200 ms", "Usually < 0.12 s", "Depends on HR", "Judged mainly by level/shape"],
+        }
+    )
+    st.dataframe(timing_df, hide_index=True, **_stretch_kwargs(st.dataframe))
+
+    st.markdown("**How to read seconds vs milliseconds**")
+    st.markdown(
+        "- **1 second = 1000 ms**\n"
+        "- **0.12 s = 120 ms**\n"
+        "- ECG intervals are often reported in **ms**"
+    )
+
+    st.markdown("**How a general reader can look at an ECG**")
+    st.markdown(
+        "- Look first at whether the beats are regular or irregular.\n"
+        "- Then look at whether the QRS spikes are narrow or broad.\n"
+        "- Next, look at whether the ST and T-wave parts return smoothly toward baseline.\n"
+        "- Finally, remember that one unusual-looking beat alone is not enough for diagnosis."
+    )
+
+    st.markdown("**Important reminder**")
+    st.markdown(
+        "- A probability score is not the same as a medical diagnosis.\n"
+        "- The app compares patterns to training examples; clinicians interpret ECGs with symptoms, history, and other tests.\n"
+        "- Heart rate changes, motion, and noise can affect what the waveform looks like."
+    )
+
+    st.info("Educational support only. Real ECG interpretation depends on the full clinical context.")
 
 
 # =========================================================
@@ -1014,7 +1199,7 @@ def main():
         st.stop()
 
     try:
-        x12_raw, uploaded_name, demo_meta, demo_manifest = resolve_input_source(demo_dir, demo_manifest_path)
+        x12_raw, uploaded_name, demo_meta = resolve_input_source(demo_dir, demo_manifest_path)
     except Exception as e:
         st.error(str(e))
         st.stop()
@@ -1078,9 +1263,6 @@ def main():
 
     quality_metrics = build_quality_metrics(x_used, rpeaks, beats)
 
-    # =========================================================
-    # Status badges
-    # =========================================================
     status_row = []
     status_row.append(badge("QC: OK" if qc_ok else "QC: Issues", "ok" if qc_ok else "warn"))
     status_row.append(badge("Confidence: Uncertain" if uncertain else "Confidence: OK", "warn" if uncertain else "ok"))
@@ -1096,12 +1278,8 @@ def main():
         unsafe_allow_html=True,
     )
 
-    # =========================================================
-    # Tabs
-    # =========================================================
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["ECG Viewer", "Prediction", "Explanation", "Education", "Review/Export"])
 
-    # ECG Viewer
     with tab1:
         st.subheader("ECG used for inference")
 
@@ -1132,7 +1310,6 @@ def main():
                 unsafe_allow_html=True,
             )
 
-    # Prediction
     with tab2:
         st.subheader("Prediction summary")
         left, right = st.columns([1.0, 1.0])
@@ -1182,119 +1359,15 @@ def main():
         c2.metric("Approx QRS (ms)", f"{qrs:.0f}" if qrs is not None else "N/A")
         c3.metric("Approx ST deviation", f"{st_dev:.3f}" if st_dev is not None else "N/A")
 
-    # Explanation
     with tab3:
-        st.subheader("Summary")
-        st.write(build_quick_summary(result, threshold))
-
-        st.subheader("Details")
-        st.write(build_detailed_interpretation(result, threshold))
-
-        if result.get("template_explanation"):
-            with st.expander("Rule-based explanation (template)"):
-                st.write(result["template_explanation"])
-
-        st.subheader("Signal-based view")
-        st.write("Most active leads in extracted beats:", ", ".join(result["top_active_leads"]))
-        st.pyplot(plot_bar(result["lead_activity"], LEAD_NAMES, "Lead activity in extracted beats", "Normalized activity", theme=theme))
-        st.markdown(
-            "<div class='small-note'>Higher activity = larger average absolute signal in extracted beats, not diagnosis.</div>",
-            unsafe_allow_html=True,
+        render_explanation_tab(
+            theme, threshold, result, qc, qc_ok, quality_metrics,
+            x12_raw, beats, rpeaks, x_used, apply_preprocess
         )
 
-        st.subheader("Explainability (XAI)")
-        st.markdown("<div class='small-note'>These explain model behavior, not clinical causality.</div>", unsafe_allow_html=True)
-        xai = result.get("xai", {})
-
-        if xai.get("occlusion_delta_toplabel") is not None:
-            st.write("**Lead occlusion sensitivity**")
-            st.pyplot(
-                plot_bar(
-                    xai["occlusion_delta_toplabel"],
-                    LEAD_NAMES,
-                    "Occlusion sensitivity vs lead",
-                    "Δ probability (base - occluded)",
-                    theme=theme,
-                )
-            )
-
-        if xai.get("ig_attr_toplabel") is not None:
-            st.write(f"**Integrated Gradients** (per-lead attribution; steps={xai.get('ig_steps', 16)})")
-            st.pyplot(
-                plot_bar(
-                    xai["ig_attr_toplabel"],
-                    LEAD_NAMES,
-                    "Integrated Gradients attribution vs lead",
-                    "Attribution (normalized)",
-                    theme=theme,
-                )
-            )
-            st.markdown(
-                "<div class='small-note'>More IG steps usually gives smoother attribution but slower runtime.</div>",
-                unsafe_allow_html=True,
-            )
-
-        st.subheader("Quality checks")
-        if qc_ok:
-            st.success("QC passed (basic checks).")
-        else:
-            st.warning("QC reported issues:")
-            for msg in qc.get("issues", []):
-                st.write("-", msg)
-
-        st.pyplot(plot_quality_metrics(quality_metrics, theme=theme))
-        st.markdown(
-            "<div class='small-note'>Quality metrics summarize finiteness, non-flatness, spread, and R-peak coverage.</div>",
-            unsafe_allow_html=True,
-        )
-
-        with st.expander("Raw checks"):
-            st.write("Uploaded ECG shape:", x12_raw.shape)
-            st.write("Extracted beats shape:", beats.shape)
-            st.write("Task type:", result.get("task_type", "N/A"))
-            st.write("Applied preprocessing:", result.get("applied_preprocess", apply_preprocess))
-            st.write("Detected R-peaks:", len(rpeaks) if rpeaks is not None else 0)
-            st.write("Looks preprocessed / z-scored:", looks_preprocessed_zscored(x_used))
-
-    # Education
     with tab4:
-        st.subheader("Understand the ECG terms")
-        st.caption("This panel is for non-experts. It shows the main ECG parts and typical normal timing.")
+        render_education_tab(theme)
 
-        st.pyplot(plot_ecg_education_figure(theme=theme))
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**P wave**")
-            st.write("Atrial activation — the atria begin the heartbeat.")
-            st.markdown("**QRS complex**")
-            st.write("Ventricular activation — the main pumping chambers contract.")
-        with c2:
-            st.markdown("**ST segment**")
-            st.write("Early recovery phase after QRS; usually judged by level and shape.")
-            st.markdown("**T wave**")
-            st.write("Later ventricular recovery phase.")
-
-        st.markdown("**Typical normal timing ranges**")
-        timing_df = pd.DataFrame({
-            "Part": ["P duration", "PR interval", "QRS duration", "QT interval", "ST segment"],
-            "Typical value": ["0.08–0.11 s", "0.12–0.20 s", "0.08–0.11 s", "0.35–0.44 s", "Varies"],
-            "Note": ["Usually < 0.12 s", "120–200 ms", "Usually < 0.12 s", "Depends on HR", "Judged mainly by level/shape"]
-        })
-        st.dataframe(timing_df, hide_index=True, **_stretch_kwargs(st.dataframe))
-
-        st.markdown("**How to read seconds vs milliseconds**")
-        st.markdown(
-            """
-- **1 second = 1000 ms**
-- **0.12 s = 120 ms**
-- ECG intervals are often reported in **ms**
-"""
-        )
-
-        st.info("Educational support only. Real ECG interpretation depends on the full clinical context.")
-
-    # Review / Export
     with tab5:
         st.subheader("Clinician-in-the-loop review")
         reviewer = st.text_input("Reviewer name / ID (optional)", value="")
