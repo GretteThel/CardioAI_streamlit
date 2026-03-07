@@ -6,3 +6,6 @@ venv/
 .streamlit/secrets.toml
 uploads/*.npy
 uploads/uploads_index.json
+models/*.pt
+demo/*.npy
+
