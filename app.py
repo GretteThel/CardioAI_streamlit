@@ -49,8 +49,9 @@ UPLOAD_INDEX_PATH = UPLOAD_DIR / "uploads_index.json"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 LOCAL_MODEL_PATH = APP_DIR / "assets" / "best_hybrid_final.pt"
-LOCAL_DEMO_DIR = APP_DIR / "assets" / "demo"
-LOCAL_DEMO_MANIFEST_PATH = LOCAL_DEMO_DIR / "demo_manifest.json"
+PRIMARY_DEMO_DIR = APP_DIR / "assets" / "demo"
+SECONDARY_DEMO_DIR = APP_DIR / "demo"
+LOCAL_DEMO_MANIFEST_PATH = PRIMARY_DEMO_DIR / "demo_manifest.json"
 
 HF_MODEL_REPO = "grettezybelle/cardioai-model"   # model repo
 HF_DEMO_REPO = "grettezybelle/cardioai-demos"    # dataset repo
@@ -198,20 +199,22 @@ def ensure_assets() -> tuple[Path, Path, Path]:
     return model_path, demo_dir, demo_manifest_path
 
 
-def resolve_assets(use_hf_assets: bool = True) -> tuple[Path, Path, Path, Optional[str]]:
+def resolve_assets(use_hf_assets: bool = True):
     model_path = LOCAL_MODEL_PATH
-    demo_dir = LOCAL_DEMO_DIR
+    primary_demo_dir = PRIMARY_DEMO_DIR
+    secondary_demo_dir = SECONDARY_DEMO_DIR
     demo_manifest_path = LOCAL_DEMO_MANIFEST_PATH
-    asset_message = None
+    asset_message = f"Using local assets from: {ASSETS_DIR}"
 
     if use_hf_assets:
         try:
-            model_path, demo_dir, demo_manifest_path = ensure_assets()
+            model_path, hf_demo_dir, demo_manifest_path = ensure_assets()
+            primary_demo_dir = hf_demo_dir
             asset_message = "Using Hugging Face assets."
         except Exception as e:
-            asset_message = f"Using local files (HF assets unavailable: {e})"
+            asset_message = f"Using local assets (HF unavailable: {e})"
 
-    return model_path, demo_dir, demo_manifest_path, asset_message
+    return model_path, primary_demo_dir, secondary_demo_dir, demo_manifest_path, asset_message
 
 
 # =========================================================
@@ -302,31 +305,67 @@ def load_demo_manifest(demo_manifest_path: Path) -> dict:
     return {}
 
 
-def scan_demo_dir(demo_dir: Path) -> List[Path]:
-    if not demo_dir.exists():
-        return []
-    return sorted(demo_dir.glob("demo_*.npy"))
+def scan_demo_dirs(primary_demo_dir: Path, secondary_demo_dir: Path) -> List[Path]:
+    files = []
+    seen = set()
+
+    for d in [primary_demo_dir, secondary_demo_dir]:
+        if d.exists():
+            for p in sorted(d.glob("demo_*.npy")):
+                if p.name not in seen:
+                    files.append(p)
+                    seen.add(p.name)
+
+    return files
 
 
-def build_demo_index(demo_dir: Path, demo_manifest_path: Path) -> Tuple[Dict[str, List[dict]], List[str]]:
+def build_demo_index(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manifest_path: Path) -> Tuple[Dict[str, List[dict]], List[str]]:
     manifest = load_demo_manifest(demo_manifest_path)
-    scanned = scan_demo_dir(demo_dir)
+    scanned = scan_demo_dirs(primary_demo_dir, secondary_demo_dir)
 
     groups: Dict[str, List[dict]] = {}
     missing: List[str] = []
+    seen = set()
 
+    # manifest entries first
     for fname, meta in manifest.items():
         label = meta.get("expected_label") or infer_label_from_filename(fname) or "OTHER"
-        exists = (demo_dir / fname).exists()
-        if not exists:
-            missing.append(fname)
-        groups.setdefault(label, []).append({"file": fname, "label": label, "exists": exists, "meta": meta})
 
+        path_primary = primary_demo_dir / fname
+        path_secondary = secondary_demo_dir / fname
+
+        if path_primary.exists():
+            full_path = path_primary
+            exists = True
+        elif path_secondary.exists():
+            full_path = path_secondary
+            exists = True
+        else:
+            full_path = path_primary
+            exists = False
+            missing.append(fname)
+
+        groups.setdefault(label, []).append({
+            "file": fname,
+            "label": label,
+            "exists": exists,
+            "meta": meta,
+            "path": str(full_path),
+        })
+        seen.add(fname)
+
+    # add extra scanned files not listed in manifest
     for p in scanned:
-        if p.name in manifest:
+        if p.name in seen:
             continue
         label = infer_label_from_filename(p.name) or "OTHER"
-        groups.setdefault(label, []).append({"file": p.name, "label": label, "exists": True, "meta": {}})
+        groups.setdefault(label, []).append({
+            "file": p.name,
+            "label": label,
+            "exists": True,
+            "meta": {},
+            "path": str(p),
+        })
 
     for k in list(groups.keys()):
         groups[k] = sorted(groups[k], key=lambda d: (not d["exists"], d["file"]))
@@ -334,14 +373,20 @@ def build_demo_index(demo_dir: Path, demo_manifest_path: Path) -> Tuple[Dict[str
     return groups, missing
 
 
-def load_local_demo_npy(demo_dir: Path, filename: str) -> np.ndarray:
-    p = demo_dir / filename
-    if not p.exists():
-        raise FileNotFoundError(f"Demo file missing on disk: {p}")
-    x = np.load(str(p), allow_pickle=True).astype(np.float32)
-    if x.shape != (12, 5000):
-        raise ValueError(f"{filename} must have shape (12,5000), got {x.shape}")
-    return x
+def load_local_demo_npy(primary_demo_dir: Path, secondary_demo_dir: Path, filename: str) -> np.ndarray:
+    candidates = [
+        primary_demo_dir / filename,
+        secondary_demo_dir / filename,
+    ]
+
+    for p in candidates:
+        if p.exists():
+            x = np.load(str(p), allow_pickle=True).astype(np.float32)
+            if x.shape != (12, 5000):
+                raise ValueError(f"{filename} must have shape (12,5000), got {x.shape}")
+            return x
+
+    raise FileNotFoundError(f"Demo file missing in both folders: {filename}")
 
 
 # =========================================================
@@ -872,7 +917,7 @@ def get_model(model_path: Path):
 # =========================================================
 # Sidebar
 # =========================================================
-def render_sidebar(demo_dir: Path, demo_manifest_path: Path, asset_message: Optional[str]) -> None:
+def render_sidebar(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manifest_path: Path, asset_message: Optional[str]) -> None:
     with st.sidebar:
         if asset_message:
             st.info(asset_message)
@@ -919,7 +964,7 @@ def render_sidebar(demo_dir: Path, demo_manifest_path: Path, asset_message: Opti
         st.divider()
         st.markdown("### Demo samples")
 
-        demo_groups, missing = build_demo_index(demo_dir, demo_manifest_path)
+        demo_groups, missing = build_demo_index(primary_demo_dir, secondary_demo_dir, demo_manifest_path)
         group_names = sorted(demo_groups.keys(), key=lambda x: (x == "OTHER", x))
 
         if not group_names:
@@ -935,7 +980,7 @@ def render_sidebar(demo_dir: Path, demo_manifest_path: Path, asset_message: Opti
 
             picked = st.selectbox("Pick a demo file", option_labels, index=0 if option_labels else 0)
             picked_file = picked.replace(" (missing)", "")
-            exists = (demo_dir / picked_file).exists()
+            exists = (primary_demo_dir / picked_file).exists() or (secondary_demo_dir / picked_file).exists()
 
             if missing:
                 st.caption("Some demos are listed but missing on disk.")
@@ -980,7 +1025,7 @@ def render_sidebar(demo_dir: Path, demo_manifest_path: Path, asset_message: Opti
 # =========================================================
 # Input resolution
 # =========================================================
-def resolve_input_source(demo_dir: Path, demo_manifest_path: Path):
+def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manifest_path: Path):
     demo_manifest = load_demo_manifest(demo_manifest_path)
     demo_meta: dict = {}
 
@@ -991,7 +1036,7 @@ def resolve_input_source(demo_dir: Path, demo_manifest_path: Path):
     selected_saved = st.session_state.get("saved_upload_name", None)
 
     if selected_demo:
-        x12_raw = load_local_demo_npy(demo_dir, selected_demo)
+        x12_raw = load_local_demo_npy(primary_demo_dir, secondary_demo_dir, selected_demo)
         uploaded_name = selected_demo
         demo_meta = demo_manifest.get(selected_demo, {})
         st.info(f"Using demo sample: {selected_demo}")
@@ -1171,10 +1216,10 @@ def main():
     init_session_state()
     apply_theme_css(st.session_state["theme"])
 
-    model_path, demo_dir, demo_manifest_path, asset_message = resolve_assets(
+    model_path, primary_demo_dir, secondary_demo_dir, demo_manifest_path, asset_message = resolve_assets(
         use_hf_assets=bool(st.session_state["use_hf_assets"])
     )
-    render_sidebar(demo_dir, demo_manifest_path, asset_message)
+    render_sidebar(primary_demo_dir, secondary_demo_dir, demo_manifest_path, asset_message)
 
     theme = st.session_state["theme"]
     threshold = float(st.session_state["threshold"])
@@ -1199,7 +1244,7 @@ def main():
         st.stop()
 
     try:
-        x12_raw, uploaded_name, demo_meta = resolve_input_source(demo_dir, demo_manifest_path)
+        x12_raw, uploaded_name, demo_meta = resolve_input_source(primary_demo_dir, secondary_demo_dir, demo_manifest_path)
     except Exception as e:
         st.error(str(e))
         st.stop()
