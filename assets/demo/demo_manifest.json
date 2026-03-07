@@ -1,0 +1,162 @@
+{
+  "demo_norm_12x5000.npy": {
+    "display_name": "Demo: NORM",
+    "expected_label": "NORM",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "model_kind": "hybrid",
+    "checkpoint_used": "best_hybrid_final.pt",
+    "selection_mode": "strict",
+    "threshold_used": 0.5,
+    "ptbxl_index": 5454,
+    "ground_truth_vector": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "NORM",
+    "predicted_probs": {
+      "NORM": 0.9873073101043701,
+      "MI": 0.017136836424469948,
+      "STTC": 0.008912975899875164,
+      "CD": 0.027572346851229668,
+      "HYP": 0.02486514300107956
+    },
+    "positive_labels_at_threshold": [
+      "NORM"
+    ],
+    "rpeaks_count": 27,
+    "notes": "Selected to align ground truth with model output as closely as possible."
+  },
+  "demo_mi_12x5000.npy": {
+    "display_name": "Demo: MI",
+    "expected_label": "MI",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "model_kind": "hybrid",
+    "checkpoint_used": "best_hybrid_final.pt",
+    "selection_mode": "strict",
+    "threshold_used": 0.5,
+    "ptbxl_index": 3027,
+    "ground_truth_vector": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "predicted_top_label": "MI",
+    "predicted_probs": {
+      "NORM": 0.031854141503572464,
+      "MI": 0.9908367395401001,
+      "STTC": 0.11973635107278824,
+      "CD": 0.10238969326019287,
+      "HYP": 0.1314808428287506
+    },
+    "positive_labels_at_threshold": [
+      "MI"
+    ],
+    "rpeaks_count": 26,
+    "notes": "Selected to align ground truth with model output as closely as possible."
+  },
+  "demo_sttc_12x5000.npy": {
+    "display_name": "Demo: STTC",
+    "expected_label": "STTC",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "model_kind": "hybrid",
+    "checkpoint_used": "best_hybrid_final.pt",
+    "selection_mode": "strict",
+    "threshold_used": 0.5,
+    "ptbxl_index": 9050,
+    "ground_truth_vector": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "predicted_top_label": "STTC",
+    "predicted_probs": {
+      "NORM": 0.14513185620307922,
+      "MI": 0.12141947448253632,
+      "STTC": 0.9557792544364929,
+      "CD": 0.13013067841529846,
+      "HYP": 0.16334660351276398
+    },
+    "positive_labels_at_threshold": [
+      "STTC"
+    ],
+    "rpeaks_count": 30,
+    "notes": "Selected to align ground truth with model output as closely as possible."
+  },
+  "demo_cd_12x5000.npy": {
+    "display_name": "Demo: CD",
+    "expected_label": "CD",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "model_kind": "hybrid",
+    "checkpoint_used": "best_hybrid_final.pt",
+    "selection_mode": "strict",
+    "threshold_used": 0.5,
+    "ptbxl_index": 1320,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "predicted_top_label": "CD",
+    "predicted_probs": {
+      "NORM": 0.13349014520645142,
+      "MI": 0.29453226923942566,
+      "STTC": 0.004114696290344,
+      "CD": 0.9768067002296448,
+      "HYP": 0.293024480342865
+    },
+    "positive_labels_at_threshold": [
+      "CD"
+    ],
+    "rpeaks_count": 31,
+    "notes": "Selected to align ground truth with model output as closely as possible."
+  },
+  "demo_hyp_12x5000.npy": {
+    "display_name": "Demo: HYP",
+    "expected_label": "HYP",
+    "source_dataset": "PTB-XL",
+    "preprocessed": true,
+    "recommended_apply_preprocess": false,
+    "model_kind": "hybrid",
+    "checkpoint_used": "best_hybrid_final.pt",
+    "selection_mode": "strict",
+    "threshold_used": 0.5,
+    "ptbxl_index": 9967,
+    "ground_truth_vector": [
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "predicted_top_label": "HYP",
+    "predicted_probs": {
+      "NORM": 0.29469820857048035,
+      "MI": 0.024562355130910873,
+      "STTC": 0.30399632453918457,
+      "CD": 0.21923698484897614,
+      "HYP": 0.9754972457885742
+    },
+    "positive_labels_at_threshold": [
+      "HYP"
+    ],
+    "rpeaks_count": 30,
+    "notes": "Selected to align ground truth with model output as closely as possible."
+  }
+}
