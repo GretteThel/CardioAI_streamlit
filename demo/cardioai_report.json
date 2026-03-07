@@ -1,0 +1,119 @@
+{
+  "timestamp_unix": 1772683303.3117645,
+  "file_name": "demo_sttc_12x5000.npy",
+  "threshold": 0.5,
+  "theme": "Light",
+  "ecg_style": "ECG paper",
+  "probability_display": "Both",
+  "applied_preprocess": true,
+  "prediction": {
+    "top_label": "NORM",
+    "top_prob": 0.814233124256134,
+    "margin": 0.30353617668151855,
+    "positive_labels": [
+      "NORM",
+      "STTC"
+    ],
+    "probs": {
+      "NORM": 0.814233124256134,
+      "MI": 0.058099694550037384,
+      "STTC": 0.5106969475746155,
+      "CD": 0.11227134615182877,
+      "HYP": 0.09582766890525818
+    },
+    "preds": {
+      "NORM": 1,
+      "MI": 0,
+      "STTC": 1,
+      "CD": 0,
+      "HYP": 0
+    }
+  },
+  "measurements": {
+    "heart_rate_bpm": 156.88138816258618,
+    "rr_std_ms": 44.668198238616,
+    "qrs_ms_est": 393.0,
+    "st_dev_est": 0.25666390359401703,
+    "rpeaks_count": 28
+  },
+  "qc": {
+    "ok": true,
+    "issues": [],
+    "per_lead_std": [
+      0.9999999403953552,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.9999999403953552,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "per_lead_ptp": [
+      5.636598587036133,
+      5.079544544219971,
+      5.1637372970581055,
+      3.715383529663086,
+      6.382711410522461,
+      5.603450298309326,
+      6.380152702331543,
+      4.544325828552246,
+      7.102010250091553,
+      7.5322465896606445,
+      6.438852310180664,
+      6.286656379699707
+    ]
+  },
+  "quality_metrics": {
+    "Finite ratio": 1.0,
+    "Non-zero ratio": 1.0,
+    "Signal spread": 0.5,
+    "R-peak coverage": 1.0
+  },
+  "xai": {
+    "occlusion_delta_toplabel": [
+      0.32675501704216003,
+      -0.03531616926193237,
+      0.14139866828918457,
+      0.5261282920837402,
+      0.2954544425010681,
+      -0.04992842674255371,
+      0.016636550426483154,
+      0.3168068826198578,
+      0.026707351207733154,
+      0.3196507394313812,
+      0.21200335025787354,
+      0.4520690441131592
+    ],
+    "ig_attr_toplabel": [
+      0.0817471444606781,
+      0.09716706722974777,
+      0.08987443149089813,
+      0.09613329917192459,
+      0.07481623440980911,
+      0.08365883678197861,
+      0.07845453917980194,
+      0.08060549199581146,
+      0.07959888130426407,
+      0.07575211673974991,
+      0.08812564611434937,
+      0.07406635582447052
+    ],
+    "ig_steps": 24
+  },
+  "ground_truth": "STTC",
+  "match": false,
+  "quick_summary": "The app thinks the ECG pattern looks **most similar to NORM** with **81% confidence**.\n\nThe labels that passed the current decision threshold are: NORM, STTC.\n\nThe **MI score** is **6%**, so MI **was not flagged**.\n\nThe estimated heart rate is about **156.9 bpm**.\n\nThe top prediction is relatively more distinct than the competing labels.\n\nThis is a **computer-generated support result**. It does not replace a doctor\u2019s interpretation.",
+  "detailed_interpretation": "**Top prediction:** NORM with probability **0.814** (moderate confidence).\n\n**Closest competing label:** STTC with probability **0.511**.\n\n**Separation margin:** 0.304. This suggests a clearer decision.\n\n**Labels crossing threshold 0.50:** NORM, STTC\n\n**MI probability:** 0.058 (not flagged)\n\n**Estimated heart rate:** 156.9 bpm.\n\n**Approx QRS duration:** 393 ms.\n\n**Approx ST deviation (Lead II):** 0.257 (z-units).\n\n**Most active leads in extracted beats:** aVR, III, II.\n\n**Preprocessing applied in app:** True.\n\n_This explanation summarizes model outputs and signal characteristics. It is not a clinical diagnosis or cardiologist interpretation._",
+  "review": {
+    "reviewer": "",
+    "reviewer_label": null,
+    "reviewer_notes": ""
+  },
+  "demo_meta": {},
+  "note": "Decision-support only. Not for clinical use."
+}
