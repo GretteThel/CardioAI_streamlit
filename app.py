@@ -131,19 +131,165 @@ def _fig_colors(theme: str) -> dict:
 
 def apply_theme_css(theme: str) -> None:
     c = _fig_colors(theme)
+
     if theme == "Dark":
         css = f"""
         <style>
-        .stApp {{ background-color: #0b1220; color: {c["text"]}; }}
-        h1, h2, h3, h4, h5, h6, p, label, div, span {{ color: {c["text"]} !important; }}
-        .small-note {{ color: {c["muted"]}; font-size: 0.9rem; }}
-        .badge {{ display:inline-block; padding:0.18rem 0.55rem; border-radius:0.55rem;
-                 font-size:0.85rem; margin-right:0.35rem; margin-bottom:0.3rem; }}
-        .badge-ok {{ background:#14532d; color:#dcfce7 !important; }}
-        .badge-warn {{ background:#713f12; color:#fef9c3 !important; }}
-        .badge-bad {{ background:#7f1d1d; color:#fee2e2 !important; }}
-        .card {{ padding: 0.9rem 1rem; border: 1px solid #243244; border-radius: 0.9rem; background: #0f172a; }}
-        section.main > div {{ padding-top: 1.2rem; }}
+        :root {{
+            --bg-main: #0b1220;
+            --bg-card: #0f172a;
+            --bg-soft: #111827;
+            --border: #243244;
+            --text: {c["text"]};
+            --muted: {c["muted"]};
+            --accent: {c["accent"]};
+        }}
+
+        .stApp {{
+            background-color: var(--bg-main) !important;
+            color: var(--text) !important;
+        }}
+
+        section[data-testid="stSidebar"] {{
+            background: var(--bg-soft) !important;
+            border-right: 1px solid var(--border);
+        }}
+
+        section[data-testid="stSidebar"] * {{
+            color: var(--text) !important;
+        }}
+
+        h1, h2, h3, h4, h5, h6, p, label, div, span {{
+            color: var(--text) !important;
+        }}
+
+        .small-note {{
+            color: var(--muted) !important;
+            font-size: 0.9rem;
+        }}
+
+        .badge {{
+            display:inline-block;
+            padding:0.18rem 0.55rem;
+            border-radius:0.55rem;
+            font-size:0.85rem;
+            margin-right:0.35rem;
+            margin-bottom:0.3rem;
+        }}
+        .badge-ok {{
+            background:#14532d;
+            color:#dcfce7 !important;
+        }}
+        .badge-warn {{
+            background:#713f12;
+            color:#fef9c3 !important;
+        }}
+        .badge-bad {{
+            background:#7f1d1d;
+            color:#fee2e2 !important;
+        }}
+
+        .card {{
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            background: var(--bg-card);
+        }}
+
+        section.main > div {{
+            padding-top: 1.2rem;
+        }}
+
+        button[data-baseweb="tab"] {{
+            color: var(--text) !important;
+            background: transparent !important;
+        }}
+        button[data-baseweb="tab"][aria-selected="true"] {{
+            border-bottom: 2px solid var(--accent) !important;
+            color: #ffffff !important;
+        }}
+
+        .stButton > button, .stDownloadButton > button {{
+            background: var(--bg-card) !important;
+            color: var(--text) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.7rem !important;
+        }}
+        .stButton > button:hover, .stDownloadButton > button:hover {{
+            border-color: var(--accent) !important;
+            color: #ffffff !important;
+        }}
+
+        div[data-baseweb="select"] > div,
+        div[data-baseweb="input"] > div,
+        div[data-baseweb="textarea"] > div {{
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+        }}
+
+        input, textarea {{
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+        }}
+
+        [data-testid="stFileUploader"] {{
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.8rem !important;
+            padding: 0.4rem;
+        }}
+        [data-testid="stFileUploader"] * {{
+            color: var(--text) !important;
+        }}
+
+        [data-testid="metric-container"] {{
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.8rem !important;
+            padding: 0.8rem !important;
+        }}
+        [data-testid="metric-container"] * {{
+            color: var(--text) !important;
+        }}
+
+        [data-testid="stDataFrame"] {{
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.8rem !important;
+        }}
+
+        table, thead, tbody, tr, th, td {{
+            color: var(--text) !important;
+            background-color: transparent !important;
+        }}
+
+        details {{
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.8rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }}
+        details summary {{
+            color: var(--text) !important;
+        }}
+
+        [data-testid="stAlert"] {{
+            border-radius: 0.8rem !important;
+        }}
+
+        .stRadio label, .stCheckbox label, .stSlider label {{
+            color: var(--text) !important;
+        }}
+
+        pre, code {{
+            background: #111827 !important;
+            color: #e5e7eb !important;
+        }}
+
+        hr {{
+            border-color: var(--border) !important;
+        }}
         </style>
         """
     else:
@@ -157,6 +303,13 @@ def apply_theme_css(theme: str) -> None:
         .badge-bad { background:#fee2e2; color:#991b1b !important; }
         .card { padding: 0.9rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.9rem; background: white; }
         section.main > div { padding-top: 1.2rem; }
+
+        [data-testid="metric-container"] {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.8rem;
+            padding: 0.8rem;
+        }
         </style>
         """
     st.markdown(css, unsafe_allow_html=True)
@@ -363,10 +516,6 @@ def reorder_panels_to_standard_12lead(panels: list[np.ndarray], layout: str) -> 
         return panels
 
     if layout == "3x4_standard":
-        # row-major panels assumed as:
-        # [I, aVR, V1, V4,
-        #  II, aVL, V2, V5,
-        #  III, aVF, V3, V6]
         idx = [0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11]
         return [panels[i] for i in idx]
 
@@ -1150,6 +1299,7 @@ def render_sidebar(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manife
 
             if st.button("Clear demo selection", **BTN_W):
                 st.session_state["demo_file"] = None
+                st.session_state["saved_upload_name"] = None
                 st.rerun()
 
             if not exists:
@@ -1179,6 +1329,12 @@ def render_sidebar(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manife
         else:
             st.caption("No saved uploads yet.")
 
+        st.divider()
+        if st.button("Clear all selections", **BTN_W):
+            st.session_state["demo_file"] = None
+            st.session_state["saved_upload_name"] = None
+            st.rerun()
+
 
 # =========================================================
 # Input resolution
@@ -1187,38 +1343,11 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
     demo_manifest = load_demo_manifest(demo_manifest_path)
     demo_meta: dict = {}
 
-    x12_raw: Optional[np.ndarray] = None
-    uploaded_name: str = ""
-
-    selected_demo = st.session_state.get("demo_file", None)
-    selected_saved = st.session_state.get("saved_upload_name", None)
-
-    if selected_demo:
-        x12_raw = load_local_demo_npy(primary_demo_dir, secondary_demo_dir, selected_demo)
-        uploaded_name = selected_demo
-        demo_meta = demo_manifest.get(selected_demo, {})
-        st.info(f"Using demo sample: {selected_demo}")
-        if "recommended_apply_preprocess" in demo_meta:
-            st.session_state["apply_preprocess"] = bool(demo_meta["recommended_apply_preprocess"])
-        return x12_raw, uploaded_name, demo_meta
-
-    if selected_saved:
-        x12_raw = load_saved_input(selected_saved)
-        uploaded_name = selected_saved
-        st.info(f"Using saved upload: {selected_saved}")
-        return x12_raw, uploaded_name, demo_meta
-
     uploaded = st.file_uploader(
         "Upload ECG (.npy, .png, .jpg, .jpeg, .pdf)",
         type=["npy", "png", "jpg", "jpeg", "pdf"],
+        key="main_ecg_uploader",
     )
-
-    if uploaded is None:
-        st.info("Choose a demo, load a saved upload, or upload an ECG file.")
-        st.stop()
-
-    uploaded_name = uploaded.name
-    ext = Path(uploaded.name).suffix.lower()
 
     layout_label = st.selectbox(
         "ECG image layout",
@@ -1228,30 +1357,52 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
     )
     layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
 
-    if ext == ".npy":
-        x12_raw = load_uploaded_npy(uploaded)
+    if uploaded is not None:
+        uploaded_name = uploaded.name
+        ext = Path(uploaded.name).suffix.lower()
 
-    elif ext in IMAGE_EXTS:
-        image = Image.open(uploaded).convert("RGB")
-        st.image(image, caption="Uploaded ECG image", use_container_width=True)
-        x12_raw = digitize_ecg_image(image, layout=layout)
+        if ext == ".npy":
+            x12_raw = load_uploaded_npy(uploaded)
+        elif ext in IMAGE_EXTS:
+            image = Image.open(uploaded).convert("RGB")
+            st.image(image, caption="Uploaded ECG image", use_container_width=True)
+            x12_raw = digitize_ecg_image(image, layout=layout)
+        elif ext in PDF_EXTS:
+            x12_raw = digitize_ecg_pdf(uploaded, layout=layout)
+        else:
+            raise ValueError(f"Unsupported upload type: {ext}")
 
-    elif ext in PDF_EXTS:
-        x12_raw = digitize_ecg_pdf(uploaded, layout=layout)
+        x12_raw = validate_signal_array(x12_raw)
 
-    else:
-        raise ValueError(f"Unsupported upload type: {ext}")
+        if st.session_state.get("remember_upload", True):
+            try:
+                rec = persist_uploaded_file(uploaded, extra_meta={"layout": layout})
+                st.session_state["saved_upload_name"] = rec["saved_name"]
+            except Exception:
+                pass
 
-    x12_raw = validate_signal_array(x12_raw)
+        st.session_state["demo_file"] = None
+        return x12_raw, uploaded_name, demo_meta
 
-    if st.session_state.get("remember_upload", True):
-        try:
-            rec = persist_uploaded_file(uploaded, extra_meta={"layout": layout})
-            st.session_state["saved_upload_name"] = rec["saved_name"]
-        except Exception:
-            pass
+    selected_demo = st.session_state.get("demo_file", None)
+    if selected_demo:
+        x12_raw = load_local_demo_npy(primary_demo_dir, secondary_demo_dir, selected_demo)
+        uploaded_name = selected_demo
+        demo_meta = demo_manifest.get(selected_demo, {})
+        st.info(f"Using demo sample: {selected_demo}")
+        if "recommended_apply_preprocess" in demo_meta:
+            st.session_state["apply_preprocess"] = bool(demo_meta["recommended_apply_preprocess"])
+        return x12_raw, uploaded_name, demo_meta
 
-    return x12_raw, uploaded_name, demo_meta
+    selected_saved = st.session_state.get("saved_upload_name", None)
+    if selected_saved:
+        x12_raw = load_saved_input(selected_saved)
+        uploaded_name = selected_saved
+        st.info(f"Using saved upload: {selected_saved}")
+        return x12_raw, uploaded_name, demo_meta
+
+    st.info("Choose a demo, a saved upload, or upload a new ECG file.")
+    st.stop()
 
 
 # =========================================================
@@ -1416,6 +1567,10 @@ def main():
     st.title("CardioAI – ECG Explorer")
     st.caption("Research demo only. Not for clinical use.")
     st.info("Image upload is experimental. Best results come from clean 12-lead ECG screenshots or PDF exports with standard layout.")
+    st.markdown(
+        "<div class='small-note'>Tip: dark mode is best viewed with Plotly installed so the interactive ECG chart also follows the app theme.</div>",
+        unsafe_allow_html=True,
+    )
 
     try:
         model = get_model(model_path)
