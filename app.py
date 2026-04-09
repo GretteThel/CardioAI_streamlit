@@ -360,12 +360,10 @@ def reorder_panels_to_standard_12lead(panels: list[np.ndarray], layout: str) -> 
         raise ValueError(f"Expected 12 lead panels, got {len(panels)}")
 
     if layout == "4x3_stacked":
-        # Assumed order:
-        # [I, II, III, aVR, aVL, aVF, V1, V2, V3, V4, V5, V6]
         return panels
 
     if layout == "3x4_standard":
-        # Assumed row-major panel order:
+        # row-major panels assumed as:
         # [I, aVR, V1, V4,
         #  II, aVL, V2, V5,
         #  III, aVF, V3, V6]
@@ -1152,7 +1150,6 @@ def render_sidebar(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manife
 
             if st.button("Clear demo selection", **BTN_W):
                 st.session_state["demo_file"] = None
-                st.session_state["saved_upload_name"] = None
                 st.rerun()
 
             if not exists:
@@ -1182,12 +1179,6 @@ def render_sidebar(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manife
         else:
             st.caption("No saved uploads yet.")
 
-        st.divider()
-        if st.button("Clear all selections", **BTN_W):
-            st.session_state["demo_file"] = None
-            st.session_state["saved_upload_name"] = None
-            st.rerun()
-
 
 # =========================================================
 # Input resolution
@@ -1196,51 +1187,12 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
     demo_manifest = load_demo_manifest(demo_manifest_path)
     demo_meta: dict = {}
 
-    # Always visible uploader
-    uploaded = st.file_uploader(
-        "Upload ECG (.npy, .png, .jpg, .jpeg, .pdf)",
-        type=["npy", "png", "jpg", "jpeg", "pdf"],
-        key="main_ecg_uploader",
-    )
+    x12_raw: Optional[np.ndarray] = None
+    uploaded_name: str = ""
 
-    layout_label = st.selectbox(
-        "ECG image layout",
-        ["3x4 standard", "4x3 stacked"],
-        index=0,
-        key="image_layout_select",
-    )
-    layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
-
-    # 1) New upload takes highest priority
-    if uploaded is not None:
-        uploaded_name = uploaded.name
-        ext = Path(uploaded.name).suffix.lower()
-
-        if ext == ".npy":
-            x12_raw = load_uploaded_npy(uploaded)
-        elif ext in IMAGE_EXTS:
-            image = Image.open(uploaded).convert("RGB")
-            st.image(image, caption="Uploaded ECG image", use_container_width=True)
-            x12_raw = digitize_ecg_image(image, layout=layout)
-        elif ext in PDF_EXTS:
-            x12_raw = digitize_ecg_pdf(uploaded, layout=layout)
-        else:
-            raise ValueError(f"Unsupported upload type: {ext}")
-
-        x12_raw = validate_signal_array(x12_raw)
-
-        if st.session_state.get("remember_upload", True):
-            try:
-                rec = persist_uploaded_file(uploaded, extra_meta={"layout": layout})
-                st.session_state["saved_upload_name"] = rec["saved_name"]
-            except Exception:
-                pass
-
-        st.session_state["demo_file"] = None
-        return x12_raw, uploaded_name, demo_meta
-
-    # 2) Demo selection fallback
     selected_demo = st.session_state.get("demo_file", None)
+    selected_saved = st.session_state.get("saved_upload_name", None)
+
     if selected_demo:
         x12_raw = load_local_demo_npy(primary_demo_dir, secondary_demo_dir, selected_demo)
         uploaded_name = selected_demo
@@ -1250,16 +1202,56 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
             st.session_state["apply_preprocess"] = bool(demo_meta["recommended_apply_preprocess"])
         return x12_raw, uploaded_name, demo_meta
 
-    # 3) Saved upload fallback
-    selected_saved = st.session_state.get("saved_upload_name", None)
     if selected_saved:
         x12_raw = load_saved_input(selected_saved)
         uploaded_name = selected_saved
         st.info(f"Using saved upload: {selected_saved}")
         return x12_raw, uploaded_name, demo_meta
 
-    st.info("Choose a demo, a saved upload, or upload a new ECG file.")
-    st.stop()
+    uploaded = st.file_uploader(
+        "Upload ECG (.npy, .png, .jpg, .jpeg, .pdf)",
+        type=["npy", "png", "jpg", "jpeg", "pdf"],
+    )
+
+    if uploaded is None:
+        st.info("Choose a demo, load a saved upload, or upload an ECG file.")
+        st.stop()
+
+    uploaded_name = uploaded.name
+    ext = Path(uploaded.name).suffix.lower()
+
+    layout_label = st.selectbox(
+        "ECG image layout",
+        ["3x4 standard", "4x3 stacked"],
+        index=0,
+        key="image_layout_select",
+    )
+    layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
+
+    if ext == ".npy":
+        x12_raw = load_uploaded_npy(uploaded)
+
+    elif ext in IMAGE_EXTS:
+        image = Image.open(uploaded).convert("RGB")
+        st.image(image, caption="Uploaded ECG image", use_container_width=True)
+        x12_raw = digitize_ecg_image(image, layout=layout)
+
+    elif ext in PDF_EXTS:
+        x12_raw = digitize_ecg_pdf(uploaded, layout=layout)
+
+    else:
+        raise ValueError(f"Unsupported upload type: {ext}")
+
+    x12_raw = validate_signal_array(x12_raw)
+
+    if st.session_state.get("remember_upload", True):
+        try:
+            rec = persist_uploaded_file(uploaded, extra_meta={"layout": layout})
+            st.session_state["saved_upload_name"] = rec["saved_name"]
+        except Exception:
+            pass
+
+    return x12_raw, uploaded_name, demo_meta
 
 
 # =========================================================
