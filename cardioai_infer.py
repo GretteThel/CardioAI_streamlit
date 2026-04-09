@@ -1,28 +1,12 @@
 import io
 import math
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 from scipy.signal import butter, filtfilt, iirnotch, find_peaks
-
-try:
-    from PIL import Image, ImageOps
-    HAVE_PIL = True
-except Exception:
-    Image = None
-    ImageOps = None
-    HAVE_PIL = False
-
-try:
-    import fitz  # PyMuPDF
-    HAVE_FITZ = True
-except Exception:
-    fitz = None
-    HAVE_FITZ = False
 
 
 # =========================
@@ -38,10 +22,6 @@ LEAD_NAMES = ["I", "II", "III", "aVR", "aVL", "aVF",
               "V1", "V2", "V3", "V4", "V5", "V6"]
 
 CLASS_NAMES = ["NORM", "MI", "STTC", "CD", "HYP"]
-
-IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
-PDF_EXTS = {".pdf"}
-SIGNAL_EXTS = {".npy"}
 
 
 # =========================
@@ -65,207 +45,6 @@ class Measurements:
 
 
 # =========================
-# Generic input helpers
-# =========================
-def resample_1d(sig: np.ndarray, target_len: int) -> np.ndarray:
-    sig = np.asarray(sig, dtype=np.float32).reshape(-1)
-    if len(sig) == target_len:
-        return sig.astype(np.float32)
-
-    x_old = np.linspace(0.0, 1.0, len(sig), dtype=np.float32)
-    x_new = np.linspace(0.0, 1.0, target_len, dtype=np.float32)
-    return np.interp(x_new, x_old, sig).astype(np.float32)
-
-
-def validate_signal_array(x: np.ndarray) -> np.ndarray:
-    x = np.asarray(x, dtype=np.float32)
-
-    if x.ndim != 2:
-        raise ValueError(f"Expected 2D ECG array, got shape {x.shape}")
-
-    if x.shape[0] != 12 and x.shape[1] == 12:
-        x = x.T
-
-    if x.shape[0] != 12:
-        raise ValueError(f"Expected 12 leads, got shape {x.shape}")
-
-    if x.shape[1] != 5000:
-        x = np.vstack([resample_1d(lead, 5000) for lead in x]).astype(np.float32)
-
-    x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
-    return x
-
-
-def load_uploaded_npy(uploaded_file):
-    data = np.load(io.BytesIO(uploaded_file.getvalue()), allow_pickle=True)
-    data = np.asarray(data, dtype=np.float32)
-    return validate_signal_array(data)
-
-
-def load_npy_bytes(raw_bytes: bytes) -> np.ndarray:
-    data = np.load(io.BytesIO(raw_bytes), allow_pickle=True)
-    data = np.asarray(data, dtype=np.float32)
-    return validate_signal_array(data)
-
-
-# =========================
-# ECG image digitization
-# =========================
-def crop_border(arr: np.ndarray, frac: float = 0.03) -> np.ndarray:
-    h, w = arr.shape[:2]
-    y0, y1 = int(h * frac), int(h * (1.0 - frac))
-    x0, x1 = int(w * frac), int(w * (1.0 - frac))
-    if y1 <= y0 or x1 <= x0:
-        return arr
-    return arr[y0:y1, x0:x1]
-
-
-def split_ecg_grid(gray: np.ndarray, layout: str = "3x4_standard") -> List[np.ndarray]:
-    gray = crop_border(gray, frac=0.03)
-
-    if layout == "3x4_standard":
-        nrows, ncols = 3, 4
-    elif layout == "4x3_stacked":
-        nrows, ncols = 4, 3
-    else:
-        raise ValueError(f"Unknown layout: {layout}")
-
-    h, w = gray.shape
-    row_h = h // nrows
-    col_w = w // ncols
-
-    panels = []
-    for r in range(nrows):
-        for c in range(ncols):
-            y0, y1 = r * row_h, (r + 1) * row_h
-            x0, x1 = c * col_w, (c + 1) * col_w
-            panels.append(gray[y0:y1, x0:x1])
-
-    return panels
-
-
-def reorder_panels_to_standard_12lead(panels: List[np.ndarray], layout: str) -> List[np.ndarray]:
-    if len(panels) != 12:
-        raise ValueError(f"Expected 12 lead panels, got {len(panels)}")
-
-    if layout == "4x3_stacked":
-        # assumes row-major:
-        # [I, II, III,
-        #  aVR, aVL, aVF,
-        #  V1, V2, V3,
-        #  V4, V5, V6]
-        return panels
-
-    if layout == "3x4_standard":
-        # assumes row-major:
-        # [I, aVR, V1, V4,
-        #  II, aVL, V2, V5,
-        #  III, aVF, V3, V6]
-        idx = [0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11]
-        return [panels[i] for i in idx]
-
-    raise ValueError(f"Unknown layout: {layout}")
-
-
-def trace_panel_to_signal(panel: np.ndarray) -> np.ndarray:
-    arr = panel.astype(np.float32)
-
-    # invert so dark trace becomes large
-    arr = 255.0 - arr
-    arr = arr / max(float(arr.max()), 1.0)
-
-    h, w = arr.shape
-    y_trace = np.zeros(w, dtype=np.float32)
-
-    for x in range(w):
-        col = arr[:, x]
-        if float(col.max()) < 0.08:
-            y_trace[x] = h / 2.0
-        else:
-            y_trace[x] = float(np.argmax(col))
-
-    kernel = np.ones(9, dtype=np.float32) / 9.0
-    y_trace = np.convolve(y_trace, kernel, mode="same")
-
-    # convert pixel row -> centered amplitude
-    sig = -(y_trace - (h / 2.0)) / max(h / 2.0, 1.0)
-    return sig.astype(np.float32)
-
-
-def digitize_ecg_image(image: "Image.Image", layout: str = "3x4_standard") -> np.ndarray:
-    if not HAVE_PIL:
-        raise ImportError("Image upload needs Pillow installed.")
-
-    gray = ImageOps.autocontrast(image.convert("L"))
-    gray_arr = np.asarray(gray)
-
-    panels = split_ecg_grid(gray_arr, layout=layout)
-    panels = reorder_panels_to_standard_12lead(panels, layout=layout)
-
-    leads = []
-    for panel in panels:
-        sig = trace_panel_to_signal(panel)
-        sig = resample_1d(sig, 5000)
-        leads.append(sig)
-
-    x12 = np.vstack(leads).astype(np.float32)
-    return validate_signal_array(x12)
-
-
-def digitize_ecg_pdf_bytes(raw_bytes: bytes, layout: str = "3x4_standard") -> np.ndarray:
-    if not HAVE_FITZ:
-        raise ImportError("PDF upload needs PyMuPDF installed.")
-
-    if not HAVE_PIL:
-        raise ImportError("PDF upload also needs Pillow installed.")
-
-    doc = fitz.open(stream=raw_bytes, filetype="pdf")
-    page = doc.load_page(0)
-    pix = page.get_pixmap(dpi=200, alpha=False)
-    image = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-    return digitize_ecg_image(image, layout=layout)
-
-
-def load_uploaded_input(uploaded_file, layout: str = "3x4_standard") -> np.ndarray:
-    ext = Path(uploaded_file.name).suffix.lower()
-    raw_bytes = uploaded_file.getvalue()
-
-    if ext in SIGNAL_EXTS:
-        return load_npy_bytes(raw_bytes)
-
-    if ext in IMAGE_EXTS:
-        if not HAVE_PIL:
-            raise ImportError("Image upload needs Pillow installed.")
-        image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
-        return digitize_ecg_image(image, layout=layout)
-
-    if ext in PDF_EXTS:
-        return digitize_ecg_pdf_bytes(raw_bytes, layout=layout)
-
-    raise ValueError(f"Unsupported upload type: {ext}")
-
-
-def load_input_from_path(path: Union[str, Path], layout: str = "3x4_standard") -> np.ndarray:
-    path = Path(path)
-    ext = path.suffix.lower()
-
-    if ext in SIGNAL_EXTS:
-        x = np.load(str(path), allow_pickle=True)
-        return validate_signal_array(x)
-
-    if ext in IMAGE_EXTS:
-        if not HAVE_PIL:
-            raise ImportError("Image loading needs Pillow installed.")
-        image = Image.open(path).convert("RGB")
-        return digitize_ecg_image(image, layout=layout)
-
-    if ext in PDF_EXTS:
-        return digitize_ecg_pdf_bytes(path.read_bytes(), layout=layout)
-
-    raise ValueError(f"Unsupported saved file type: {ext}")
-
-
-# =========================
 # Preprocessing
 # =========================
 def bandpass_filter(x, fs=FS, low=0.5, high=40.0, order=4):
@@ -285,11 +64,10 @@ def zscore_per_lead(x, eps=1e-8):
 
 
 def preprocess_ecg(x12: np.ndarray) -> np.ndarray:
-    """
-    x12: (12, 5000)
-    """
     x12 = np.asarray(x12, dtype=np.float32)
-    x12 = validate_signal_array(x12)
+    if x12.shape != (12, 5000):
+        raise ValueError(f"Expected shape (12, 5000), got {x12.shape}")
+
     x12 = bandpass_filter(x12)
     x12 = notch_filter(x12)
     x12 = zscore_per_lead(x12)
@@ -298,18 +76,22 @@ def preprocess_ecg(x12: np.ndarray) -> np.ndarray:
 
 
 # =========================
+# Input loading
+# =========================
+def load_uploaded_npy(uploaded_file):
+    data = np.load(io.BytesIO(uploaded_file.getvalue()), allow_pickle=True)
+    data = np.asarray(data, dtype=np.float32)
+    if data.shape != (12, 5000):
+        raise ValueError(f"Expected uploaded .npy to have shape (12, 5000), got {data.shape}")
+    return data
+
+
+# =========================
 # QC / validation "agent"
 # =========================
 def validate_ecg(x12: np.ndarray) -> QCReport:
     issues = []
     x12 = np.asarray(x12, dtype=np.float32)
-
-    if x12.ndim != 2:
-        issues.append(f"Wrong ndim: {x12.ndim}, expected 2D array.")
-        return QCReport(ok=False, issues=issues, per_lead_std=[], per_lead_ptp=[])
-
-    if x12.shape[0] != 12 and x12.shape[1] == 12:
-        x12 = x12.T
 
     if x12.shape != (12, 5000):
         issues.append(f"Wrong shape: {x12.shape}, expected (12, 5000).")
@@ -336,10 +118,6 @@ def validate_ecg(x12: np.ndarray) -> QCReport:
 # R-peaks + beat extraction
 # =========================
 def detect_rpeaks_lead2(x12, fs=FS):
-    """
-    Lead-II heuristic: slope-energy envelope + peak finding.
-    Works reasonably for demo; not clinical-grade.
-    """
     lead2 = x12[1]
     d = np.diff(lead2, prepend=lead2[0])
     e = d ** 2
@@ -513,12 +291,12 @@ def estimate_hr_rr(rpeaks: np.ndarray, fs=FS) -> Tuple[Optional[float], Optional
 
 
 def estimate_qrs_ms_from_beats(beats: np.ndarray, fs=FS) -> Optional[float]:
-    lead = 1  # Lead II
+    lead = 1
     widths = []
     for b in range(beats.shape[0]):
         sig = beats[b, lead]
         center = PRE_R
-        w = sig[max(0, center - 150):min(len(sig), center + 200)]
+        w = sig[max(0, center-150):min(len(sig), center+200)]
         amp = np.max(np.abs(w))
         if amp < 1e-6:
             continue
@@ -611,6 +389,7 @@ def integrated_gradients_beats(
 
     x = beats_tensor.detach().clone()
     baseline = torch.zeros_like(x)
+
     total_grad = torch.zeros_like(x)
 
     for i in range(1, steps + 1):
@@ -715,7 +494,7 @@ def prepare_input(
     x12_raw: np.ndarray,
     apply_preprocess: bool
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    x12_raw = validate_signal_array(x12_raw)
+    x12_raw = np.asarray(x12_raw, dtype=np.float32)
     x_used = preprocess_ecg(x12_raw) if apply_preprocess else x12_raw
     rpeaks = detect_rpeaks_lead2(x_used)
     beats = extract_fixed_beats(x_used, rpeaks)
@@ -732,7 +511,6 @@ def predict_ecg(
     run_ig: bool = False,
     ig_steps: int = 16,
 ) -> Dict:
-    x12_raw = validate_signal_array(x12_raw)
     qc = validate_ecg(x12_raw)
 
     x_used, rpeaks, beats = prepare_input(x12_raw, apply_preprocess=apply_preprocess)
