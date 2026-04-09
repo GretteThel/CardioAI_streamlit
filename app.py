@@ -136,30 +136,28 @@ def apply_theme_css(theme: str) -> None:
         css = f"""
         <style>
         :root {{
-            --bg-main: #0b1220;
-            --bg-card: #0f172a;
-            --bg-soft: #111827;
-            --border: #243244;
-            --text: {c["text"]};
-            --muted: {c["muted"]};
+            --bg-main: #020b1a;
+            --bg-card: #081427;
+            --bg-soft: #0d1b2f;
+            --bg-input: #0f1f36;
+            --border: #223551;
+            --text: #e8eef9;
+            --muted: #b5c3d9;
             --accent: {c["accent"]};
+            --danger: #f87171;
         }}
 
         .stApp {{
-            background-color: var(--bg-main) !important;
+            background: var(--bg-main) !important;
             color: var(--text) !important;
         }}
 
-        section[data-testid="stSidebar"] {{
-            background: var(--bg-soft) !important;
-            border-right: 1px solid var(--border);
+        section.main > div {{
+            padding-top: 1.1rem;
         }}
 
-        section[data-testid="stSidebar"] * {{
-            color: var(--text) !important;
-        }}
-
-        h1, h2, h3, h4, h5, h6, p, label, div, span {{
+        /* General text */
+        html, body, p, div, span, label, li, h1, h2, h3, h4, h5, h6 {{
             color: var(--text) !important;
         }}
 
@@ -168,6 +166,23 @@ def apply_theme_css(theme: str) -> None:
             font-size: 0.9rem;
         }}
 
+        /* Sidebar */
+        section[data-testid="stSidebar"] {{
+            background: var(--bg-soft) !important;
+            border-right: 1px solid var(--border) !important;
+        }}
+
+        section[data-testid="stSidebar"] * {{
+            color: var(--text) !important;
+        }}
+
+        /* Sidebar divider */
+        section[data-testid="stSidebar"] hr,
+        hr {{
+            border-color: var(--border) !important;
+        }}
+
+        /* Badges */
         .badge {{
             display:inline-block;
             padding:0.18rem 0.55rem;
@@ -196,124 +211,15 @@ def apply_theme_css(theme: str) -> None:
             background: var(--bg-card);
         }}
 
-        section.main > div {{
-            padding-top: 1.2rem;
-        }}
-
+        /* Tabs */
         button[data-baseweb="tab"] {{
-            color: var(--text) !important;
+            color: var(--muted) !important;
             background: transparent !important;
         }}
-        button[data-baseweb="tab"][aria-selected="true"] {{
-            border-bottom: 2px solid var(--accent) !important;
-            color: #ffffff !important;
-        }}
-
-        .stButton > button, .stDownloadButton > button {{
-            background: var(--bg-card) !important;
-            color: var(--text) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.7rem !important;
-        }}
-        .stButton > button:hover, .stDownloadButton > button:hover {{
-            border-color: var(--accent) !important;
-            color: #ffffff !important;
-        }}
-
-        div[data-baseweb="select"] > div,
-        div[data-baseweb="input"] > div,
-        div[data-baseweb="textarea"] > div {{
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
+        button[data-baseweb="tab"]:hover {{
             color: var(--text) !important;
         }}
-
-        input, textarea {{
-            color: var(--text) !important;
-            -webkit-text-fill-color: var(--text) !important;
-        }}
-
-        [data-testid="stFileUploader"] {{
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.8rem !important;
-            padding: 0.4rem;
-        }}
-        [data-testid="stFileUploader"] * {{
-            color: var(--text) !important;
-        }}
-
-        [data-testid="metric-container"] {{
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.8rem !important;
-            padding: 0.8rem !important;
-        }}
-        [data-testid="metric-container"] * {{
-            color: var(--text) !important;
-        }}
-
-        [data-testid="stDataFrame"] {{
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.8rem !important;
-        }}
-
-        table, thead, tbody, tr, th, td {{
-            color: var(--text) !important;
-            background-color: transparent !important;
-        }}
-
-        details {{
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.8rem !important;
-            padding: 0.25rem 0.5rem !important;
-        }}
-        details summary {{
-            color: var(--text) !important;
-        }}
-
-        [data-testid="stAlert"] {{
-            border-radius: 0.8rem !important;
-        }}
-
-        .stRadio label, .stCheckbox label, .stSlider label {{
-            color: var(--text) !important;
-        }}
-
-        pre, code {{
-            background: #111827 !important;
-            color: #e5e7eb !important;
-        }}
-
-        hr {{
-            border-color: var(--border) !important;
-        }}
-        </style>
-        """
-    else:
-        css = """
-        <style>
-        .small-note { color: #6b7280; font-size: 0.9rem; }
-        .badge { display:inline-block; padding:0.18rem 0.55rem; border-radius:0.55rem;
-                 font-size:0.85rem; margin-right:0.35rem; margin-bottom:0.3rem; }
-        .badge-ok { background:#dcfce7; color:#166534 !important; }
-        .badge-warn { background:#fef9c3; color:#854d0e !important; }
-        .badge-bad { background:#fee2e2; color:#991b1b !important; }
-        .card { padding: 0.9rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.9rem; background: white; }
-        section.main > div { padding-top: 1.2rem; }
-
-        [data-testid="metric-container"] {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.8rem;
-            padding: 0.8rem;
-        }
-        </style>
-        """
-    st.markdown(css, unsafe_allow_html=True)
-
+        button[data-baseweb="tab"][aria
 
 def badge(text: str, kind: str) -> str:
     cls = {"ok": "badge-ok", "warn": "badge-warn", "bad": "badge-bad"}[kind]
