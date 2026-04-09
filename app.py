@@ -5,6 +5,7 @@ import inspect
 import json
 import time
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
+from PIL import Image, ImageOps
 
 # Plotly optional
 try:
@@ -29,9 +31,18 @@ except Exception:
     hf_hub_download = None
     HAVE_HF_HUB = False
 
+# PDF support optional
+try:
+    import fitz  # PyMuPDF
+    HAVE_FITZ = True
+except Exception:
+    fitz = None
+    HAVE_FITZ = False
+
 from cardioai_infer import (
     CLASS_NAMES,
     LEAD_NAMES,
+    FS,
     load_model,
     load_uploaded_npy,
     predict_ecg,
@@ -53,10 +64,13 @@ PRIMARY_DEMO_DIR = APP_DIR / "assets" / "demo"
 SECONDARY_DEMO_DIR = APP_DIR / "demo"
 LOCAL_DEMO_MANIFEST_PATH = PRIMARY_DEMO_DIR / "demo_manifest.json"
 
-HF_MODEL_REPO = "grettezybelle/cardioai-model"   # model repo
-HF_DEMO_REPO = "grettezybelle/cardioai-demos"    # dataset repo
+HF_MODEL_REPO = "grettezybelle/cardioai-model"
+HF_DEMO_REPO = "grettezybelle/cardioai-demos"
 
-DEFAULT_FS = 500
+DEFAULT_FS = FS
+IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
+PDF_EXTS = {".pdf"}
+SIGNAL_EXTS = {".npy"}
 
 st.set_page_config(page_title="CardioAI – ECG Explorer", layout="wide")
 
@@ -88,6 +102,7 @@ def init_session_state() -> None:
         "saved_upload_name": None,
         "remember_upload": True,
         "use_hf_assets": True,
+        "image_layout": "3x4 standard",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -237,12 +252,13 @@ def save_upload_index(items: List[dict]) -> None:
     UPLOAD_INDEX_PATH.write_text(json.dumps(items, indent=2), encoding="utf-8")
 
 
-def persist_uploaded_npy(uploaded_file, extra_meta: dict | None = None) -> dict:
+def persist_uploaded_file(uploaded_file, extra_meta: dict | None = None) -> dict:
     raw_bytes = uploaded_file.getvalue()
     sha12 = _sha256_bytes(raw_bytes)[:12]
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ext = Path(uploaded_file.name).suffix.lower()
     safe_stem = Path(uploaded_file.name).stem.replace(" ", "_")
-    out_name = f"{ts}__{safe_stem}__{sha12}.npy"
+    out_name = f"{ts}__{safe_stem}__{sha12}{ext}"
     out_path = UPLOAD_DIR / out_name
 
     idx = load_upload_index()
@@ -259,6 +275,7 @@ def persist_uploaded_npy(uploaded_file, extra_meta: dict | None = None) -> dict:
         "saved_name": out_name,
         "saved_path": str(out_path),
         "saved_at": ts,
+        "ext": ext,
     }
     if extra_meta:
         rec.update(extra_meta)
@@ -277,12 +294,155 @@ def delete_saved_upload(saved_name: str) -> None:
         p.unlink()
 
 
-def load_saved_npy(saved_name: str) -> np.ndarray:
+# =========================================================
+# Image -> signal digitization helpers
+# =========================================================
+def resample_1d(sig: np.ndarray, target_len: int) -> np.ndarray:
+    sig = np.asarray(sig, dtype=np.float32).reshape(-1)
+    if len(sig) == target_len:
+        return sig
+    x_old = np.linspace(0.0, 1.0, len(sig))
+    x_new = np.linspace(0.0, 1.0, target_len)
+    return np.interp(x_new, x_old, sig).astype(np.float32)
+
+
+def validate_signal_array(x: np.ndarray) -> np.ndarray:
+    x = np.asarray(x, dtype=np.float32)
+
+    if x.ndim != 2:
+        raise ValueError(f"Expected 2D ECG array, got shape {x.shape}")
+
+    if x.shape[0] != 12 and x.shape[1] == 12:
+        x = x.T
+
+    if x.shape[0] != 12:
+        raise ValueError(f"Expected 12 leads, got shape {x.shape}")
+
+    if x.shape[1] != 5000:
+        x = np.vstack([resample_1d(lead, 5000) for lead in x])
+
+    return x.astype(np.float32)
+
+
+def crop_border(arr: np.ndarray, frac: float = 0.03) -> np.ndarray:
+    h, w = arr.shape[:2]
+    y0, y1 = int(h * frac), int(h * (1.0 - frac))
+    x0, x1 = int(w * frac), int(w * (1.0 - frac))
+    return arr[y0:y1, x0:x1]
+
+
+def split_ecg_grid(gray: np.ndarray, layout: str = "3x4_standard") -> list[np.ndarray]:
+    gray = crop_border(gray, frac=0.03)
+
+    if layout == "3x4_standard":
+        nrows, ncols = 3, 4
+    elif layout == "4x3_stacked":
+        nrows, ncols = 4, 3
+    else:
+        raise ValueError(f"Unknown layout: {layout}")
+
+    h, w = gray.shape
+    row_h = h // nrows
+    col_w = w // ncols
+
+    panels = []
+    for r in range(nrows):
+        for c in range(ncols):
+            y0, y1 = r * row_h, (r + 1) * row_h
+            x0, x1 = c * col_w, (c + 1) * col_w
+            panels.append(gray[y0:y1, x0:x1])
+
+    return panels
+
+
+def reorder_panels_to_standard_12lead(panels: list[np.ndarray], layout: str) -> list[np.ndarray]:
+    if len(panels) != 12:
+        raise ValueError(f"Expected 12 lead panels, got {len(panels)}")
+
+    if layout == "4x3_stacked":
+        return panels
+
+    if layout == "3x4_standard":
+        # row-major panels assumed as:
+        # [I, aVR, V1, V4,
+        #  II, aVL, V2, V5,
+        #  III, aVF, V3, V6]
+        idx = [0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11]
+        return [panels[i] for i in idx]
+
+    raise ValueError(f"Unknown layout: {layout}")
+
+
+def trace_panel_to_signal(panel: np.ndarray) -> np.ndarray:
+    arr = panel.astype(np.float32)
+    arr = 255.0 - arr
+    arr = arr / max(arr.max(), 1.0)
+
+    h, w = arr.shape
+    y_trace = np.zeros(w, dtype=np.float32)
+
+    for x in range(w):
+        col = arr[:, x]
+        if col.max() < 0.08:
+            y_trace[x] = h / 2.0
+        else:
+            y_trace[x] = float(np.argmax(col))
+
+    kernel = np.ones(9, dtype=np.float32) / 9.0
+    y_trace = np.convolve(y_trace, kernel, mode="same")
+
+    sig = -(y_trace - (h / 2.0)) / max(h / 2.0, 1.0)
+    return sig.astype(np.float32)
+
+
+def digitize_ecg_image(image: Image.Image, layout: str = "3x4_standard") -> np.ndarray:
+    gray = ImageOps.autocontrast(image.convert("L"))
+    gray_arr = np.asarray(gray)
+
+    panels = split_ecg_grid(gray_arr, layout=layout)
+    panels = reorder_panels_to_standard_12lead(panels, layout=layout)
+
+    leads = []
+    for panel in panels:
+        sig = trace_panel_to_signal(panel)
+        sig = resample_1d(sig, 5000)
+        leads.append(sig)
+
+    x12 = np.vstack(leads).astype(np.float32)
+    return validate_signal_array(x12)
+
+
+def digitize_ecg_pdf(pdf_source, layout: str = "3x4_standard") -> np.ndarray:
+    if not HAVE_FITZ:
+        raise ImportError("PDF upload needs PyMuPDF. Install pymupdf.")
+
+    if isinstance(pdf_source, (str, Path)):
+        doc = fitz.open(str(pdf_source))
+    else:
+        doc = fitz.open(stream=pdf_source.getvalue(), filetype="pdf")
+
+    page = doc.load_page(0)
+    pix = page.get_pixmap(dpi=200, alpha=False)
+    image = Image.open(BytesIO(pix.tobytes("png"))).convert("RGB")
+    return digitize_ecg_image(image, layout=layout)
+
+
+def load_saved_input(saved_name: str) -> np.ndarray:
     p = UPLOAD_DIR / saved_name
-    x = np.load(str(p), allow_pickle=True).astype(np.float32)
-    if x.shape != (12, 5000):
-        raise ValueError(f"Saved file must have shape (12,5000), got {x.shape}")
-    return x
+    ext = p.suffix.lower()
+
+    if ext == ".npy":
+        x = np.load(str(p), allow_pickle=True).astype(np.float32)
+        return validate_signal_array(x)
+
+    if ext in IMAGE_EXTS:
+        image = Image.open(p).convert("RGB")
+        return digitize_ecg_image(image, layout="3x4_standard")
+
+    if ext in PDF_EXTS:
+        return digitize_ecg_pdf(p, layout="3x4_standard")
+
+    raise ValueError(f"Unsupported saved file type: {ext}")
 
 
 # =========================================================
@@ -327,7 +487,6 @@ def build_demo_index(primary_demo_dir: Path, secondary_demo_dir: Path, demo_mani
     missing: List[str] = []
     seen = set()
 
-    # manifest entries first
     for fname, meta in manifest.items():
         label = meta.get("expected_label") or infer_label_from_filename(fname) or "OTHER"
 
@@ -354,7 +513,6 @@ def build_demo_index(primary_demo_dir: Path, secondary_demo_dir: Path, demo_mani
         })
         seen.add(fname)
 
-    # add extra scanned files not listed in manifest
     for p in scanned:
         if p.name in seen:
             continue
@@ -1045,22 +1203,50 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
         return x12_raw, uploaded_name, demo_meta
 
     if selected_saved:
-        x12_raw = load_saved_npy(selected_saved)
+        x12_raw = load_saved_input(selected_saved)
         uploaded_name = selected_saved
         st.info(f"Using saved upload: {selected_saved}")
         return x12_raw, uploaded_name, demo_meta
 
-    uploaded = st.file_uploader("Upload a .npy ECG file with shape (12, 5000)", type=["npy"])
+    uploaded = st.file_uploader(
+        "Upload ECG (.npy, .png, .jpg, .jpeg, .pdf)",
+        type=["npy", "png", "jpg", "jpeg", "pdf"],
+    )
+
     if uploaded is None:
-        st.info("Choose a demo, load a saved upload, or upload a .npy ECG.")
+        st.info("Choose a demo, load a saved upload, or upload an ECG file.")
         st.stop()
 
     uploaded_name = uploaded.name
-    x12_raw = load_uploaded_npy(uploaded)
+    ext = Path(uploaded.name).suffix.lower()
+
+    layout_label = st.selectbox(
+        "ECG image layout",
+        ["3x4 standard", "4x3 stacked"],
+        index=0,
+        key="image_layout_select",
+    )
+    layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
+
+    if ext == ".npy":
+        x12_raw = load_uploaded_npy(uploaded)
+
+    elif ext in IMAGE_EXTS:
+        image = Image.open(uploaded).convert("RGB")
+        st.image(image, caption="Uploaded ECG image", use_container_width=True)
+        x12_raw = digitize_ecg_image(image, layout=layout)
+
+    elif ext in PDF_EXTS:
+        x12_raw = digitize_ecg_pdf(uploaded, layout=layout)
+
+    else:
+        raise ValueError(f"Unsupported upload type: {ext}")
+
+    x12_raw = validate_signal_array(x12_raw)
 
     if st.session_state.get("remember_upload", True):
         try:
-            rec = persist_uploaded_npy(uploaded)
+            rec = persist_uploaded_file(uploaded, extra_meta={"layout": layout})
             st.session_state["saved_upload_name"] = rec["saved_name"]
         except Exception:
             pass
@@ -1229,6 +1415,7 @@ def main():
 
     st.title("CardioAI – ECG Explorer")
     st.caption("Research demo only. Not for clinical use.")
+    st.info("Image upload is experimental. Best results come from clean 12-lead ECG screenshots or PDF exports with standard layout.")
 
     try:
         model = get_model(model_path)
