@@ -131,95 +131,36 @@ def _fig_colors(theme: str) -> dict:
 
 def apply_theme_css(theme: str) -> None:
     c = _fig_colors(theme)
-
     if theme == "Dark":
         css = f"""
         <style>
-        :root {{
-            --bg-main: #020b1a;
-            --bg-card: #081427;
-            --bg-soft: #0d1b2f;
-            --bg-input: #0f1f36;
-            --border: #223551;
-            --text: #e8eef9;
-            --muted: #b5c3d9;
-            --accent: {c["accent"]};
-            --danger: #f87171;
-        }}
+        .stApp {{ background-color: #0b1220; color: {c["text"]}; }}
+        h1, h2, h3, h4, h5, h6, p, label, div, span {{ color: {c["text"]} !important; }}
+        .small-note {{ color: {c["muted"]}; font-size: 0.9rem; }}
+        .badge {{ display:inline-block; padding:0.18rem 0.55rem; border-radius:0.55rem;
+                 font-size:0.85rem; margin-right:0.35rem; margin-bottom:0.3rem; }}
+        .badge-ok {{ background:#14532d; color:#dcfce7 !important; }}
+        .badge-warn {{ background:#713f12; color:#fef9c3 !important; }}
+        .badge-bad {{ background:#7f1d1d; color:#fee2e2 !important; }}
+        .card {{ padding: 0.9rem 1rem; border: 1px solid #243244; border-radius: 0.9rem; background: #0f172a; }}
+        section.main > div {{ padding-top: 1.2rem; }}
+        </style>
+        """
+    else:
+        css = """
+        <style>
+        .small-note { color: #6b7280; font-size: 0.9rem; }
+        .badge { display:inline-block; padding:0.18rem 0.55rem; border-radius:0.55rem;
+                 font-size:0.85rem; margin-right:0.35rem; margin-bottom:0.3rem; }
+        .badge-ok { background:#dcfce7; color:#166534 !important; }
+        .badge-warn { background:#fef9c3; color:#854d0e !important; }
+        .badge-bad { background:#fee2e2; color:#991b1b !important; }
+        .card { padding: 0.9rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.9rem; background: white; }
+        section.main > div { padding-top: 1.2rem; }
+        </style>
+        """
+    st.markdown(css, unsafe_allow_html=True)
 
-        .stApp {{
-            background: var(--bg-main) !important;
-            color: var(--text) !important;
-        }}
-
-        section.main > div {{
-            padding-top: 1.1rem;
-        }}
-
-        /* General text */
-        html, body, p, div, span, label, li, h1, h2, h3, h4, h5, h6 {{
-            color: var(--text) !important;
-        }}
-
-        .small-note {{
-            color: var(--muted) !important;
-            font-size: 0.9rem;
-        }}
-
-        /* Sidebar */
-        section[data-testid="stSidebar"] {{
-            background: var(--bg-soft) !important;
-            border-right: 1px solid var(--border) !important;
-        }}
-
-        section[data-testid="stSidebar"] * {{
-            color: var(--text) !important;
-        }}
-
-        /* Sidebar divider */
-        section[data-testid="stSidebar"] hr,
-        hr {{
-            border-color: var(--border) !important;
-        }}
-
-        /* Badges */
-        .badge {{
-            display:inline-block;
-            padding:0.18rem 0.55rem;
-            border-radius:0.55rem;
-            font-size:0.85rem;
-            margin-right:0.35rem;
-            margin-bottom:0.3rem;
-        }}
-        .badge-ok {{
-            background:#14532d;
-            color:#dcfce7 !important;
-        }}
-        .badge-warn {{
-            background:#713f12;
-            color:#fef9c3 !important;
-        }}
-        .badge-bad {{
-            background:#7f1d1d;
-            color:#fee2e2 !important;
-        }}
-
-        .card {{
-            padding: 0.9rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 0.9rem;
-            background: var(--bg-card);
-        }}
-
-        /* Tabs */
-        button[data-baseweb="tab"] {{
-            color: var(--muted) !important;
-            background: transparent !important;
-        }}
-        button[data-baseweb="tab"]:hover {{
-            color: var(--text) !important;
-        }}
-        button[data-baseweb="tab"][aria
 
 def badge(text: str, kind: str) -> str:
     cls = {"ok": "badge-ok", "warn": "badge-warn", "bad": "badge-bad"}[kind]
@@ -419,9 +360,15 @@ def reorder_panels_to_standard_12lead(panels: list[np.ndarray], layout: str) -> 
         raise ValueError(f"Expected 12 lead panels, got {len(panels)}")
 
     if layout == "4x3_stacked":
+        # Assumed order:
+        # [I, II, III, aVR, aVL, aVF, V1, V2, V3, V4, V5, V6]
         return panels
 
     if layout == "3x4_standard":
+        # Assumed row-major panel order:
+        # [I, aVR, V1, V4,
+        #  II, aVL, V2, V5,
+        #  III, aVF, V3, V6]
         idx = [0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11]
         return [panels[i] for i in idx]
 
@@ -1249,6 +1196,7 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
     demo_manifest = load_demo_manifest(demo_manifest_path)
     demo_meta: dict = {}
 
+    # Always visible uploader
     uploaded = st.file_uploader(
         "Upload ECG (.npy, .png, .jpg, .jpeg, .pdf)",
         type=["npy", "png", "jpg", "jpeg", "pdf"],
@@ -1263,6 +1211,7 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
     )
     layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
 
+    # 1) New upload takes highest priority
     if uploaded is not None:
         uploaded_name = uploaded.name
         ext = Path(uploaded.name).suffix.lower()
@@ -1290,6 +1239,7 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
         st.session_state["demo_file"] = None
         return x12_raw, uploaded_name, demo_meta
 
+    # 2) Demo selection fallback
     selected_demo = st.session_state.get("demo_file", None)
     if selected_demo:
         x12_raw = load_local_demo_npy(primary_demo_dir, secondary_demo_dir, selected_demo)
@@ -1300,6 +1250,7 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
             st.session_state["apply_preprocess"] = bool(demo_meta["recommended_apply_preprocess"])
         return x12_raw, uploaded_name, demo_meta
 
+    # 3) Saved upload fallback
     selected_saved = st.session_state.get("saved_upload_name", None)
     if selected_saved:
         x12_raw = load_saved_input(selected_saved)
@@ -1473,10 +1424,6 @@ def main():
     st.title("CardioAI – ECG Explorer")
     st.caption("Research demo only. Not for clinical use.")
     st.info("Image upload is experimental. Best results come from clean 12-lead ECG screenshots or PDF exports with standard layout.")
-    st.markdown(
-        "<div class='small-note'>Tip: dark mode is best viewed with Plotly installed so the interactive ECG chart also follows the app theme.</div>",
-        unsafe_allow_html=True,
-    )
 
     try:
         model = get_model(model_path)
