@@ -55,9 +55,9 @@ CardioAI_streamlit/
 
 ## Relationship to the Main CardioAI Repository
 
-This repository contains the **Streamlit demonstration layer** only.
+This repository contains the Streamlit-based demonstration layer for CardioAI.
 
-The separate **main CardioAI repository** contains the research workflow and thesis artefacts, including:
+The separate main `CardioAI` repository contains the research workflow and thesis artefacts, including:
 
 * preprocessing and tokenization notebooks
 * model experimentation and evaluation workflow
