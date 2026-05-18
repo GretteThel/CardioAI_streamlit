@@ -94,6 +94,13 @@ CLASS_DESCRIPTIONS = {
     "HYP": "Hypertrophy-related pattern",
 }
 
+EDUCATION_ASSET_DIR = ASSETS_DIR / "education"
+EDUCATION_FIGURES = {
+    "overview": EDUCATION_ASSET_DIR / "understanding_the_12_lead_ecg_system.png",
+    "groups": EDUCATION_ASSET_DIR / "ecg_lead_groups_and_heart_views.png",
+    "placement": EDUCATION_ASSET_DIR / "12_lead_ecg_electrode_placement_guide.png",
+}
+
 st.set_page_config(page_title="CardioAI – ECG Explorer", layout="wide")
 
 
@@ -132,6 +139,17 @@ def show_plotly(fig, display_mode_bar: bool = False) -> None:
         use_container_width=True,
         config={"displayModeBar": display_mode_bar, "responsive": True},
     )
+
+
+def show_education_image(path: Path, caption: str | None = None) -> bool:
+    """Show an education image if it exists; return True when displayed."""
+    if not path.exists():
+        return False
+    try:
+        st.image(str(path), caption=caption, use_container_width=True)
+    except TypeError:
+        st.image(str(path), caption=caption)
+    return True
 
 
 def init_session_state() -> None:
@@ -1531,56 +1549,166 @@ def render_explanation_tab(theme, threshold, result, qc, qc_ok, quality_metrics,
 
 def render_education_tab(theme):
     st.subheader("Understand the ECG terms")
-    st.caption("This panel is for non-experts. It shows the main ECG parts and typical normal timing.")
-
-    show_pyplot(plot_ecg_education_figure(theme=theme))
-
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**P wave**")
-        st.write("Atrial activation — the atria begin the heartbeat.")
-        st.markdown("**QRS complex**")
-        st.write("Ventricular activation — the main pumping chambers contract.")
-    with c2:
-        st.markdown("**ST segment**")
-        st.write("Early recovery phase after QRS; usually judged by level and shape.")
-        st.markdown("**T wave**")
-        st.write("Later ventricular recovery phase.")
-
-    st.markdown("**Typical normal timing ranges**")
-    timing_df = pd.DataFrame(
-        {
-            "Part": ["P duration", "PR interval", "QRS duration", "QT interval", "ST segment"],
-            "Typical value": ["0.08–0.11 s", "0.12–0.20 s", "0.08–0.11 s", "0.35–0.44 s", "Varies"],
-            "Note": ["Usually < 0.12 s", "120–200 ms", "Usually < 0.12 s", "Depends on HR", "Judged mainly by level/shape"],
-        }
-    )
-    st.dataframe(timing_df, hide_index=True, **_stretch_kwargs(st.dataframe))
-
-    st.markdown("**How to read seconds vs milliseconds**")
-    st.markdown(
-        "- **1 second = 1000 ms**\n"
-        "- **0.12 s = 120 ms**\n"
-        "- ECG intervals are often reported in **ms**"
+    st.caption(
+        "This panel is for non-experts. It explains what ECG leads are, where electrodes are placed, "
+        "and how the basic ECG waveform is read."
     )
 
-    st.markdown("**How a general reader can look at an ECG**")
-    st.markdown(
-        "- Look first at whether the beats are regular or irregular.\n"
-        "- Then look at whether the QRS spikes are narrow or broad.\n"
-        "- Next, look at whether the ST and T-wave parts return smoothly toward baseline.\n"
-        "- Finally, remember that one unusual-looking beat alone is not enough for diagnosis."
+    st.info(
+        "Educational support only. These figures explain ECG concepts for the artefact presentation; "
+        "they are not a clinical interpretation guide."
     )
+
+    fig_tab1, fig_tab2, fig_tab3, fig_tab4 = st.tabs([
+        "12-lead overview",
+        "Lead groups",
+        "Electrode placement",
+        "ECG waveform basics",
+    ])
+
+    with fig_tab1:
+        st.markdown("### How a 12-lead ECG works")
+        st.markdown(
+            "A **lead** is a viewing angle of the heart's electrical activity. "
+            "An **electrode** is the physical sensor placed on the body. "
+            "In a standard 12-lead ECG, **10 electrodes** are used to generate **12 lead views**."
+        )
+        shown = show_education_image(
+            EDUCATION_FIGURES["overview"],
+            caption="Original educational figure created for the CardioAI artefact.",
+        )
+        if not shown:
+            st.warning(
+                "Education figure missing. Add `understanding_the_12_lead_ecg_system.png` "
+                "to `assets/education/`."
+            )
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**Frontal plane / limb leads**")
+            st.write("I, II, III, aVR, aVL, and aVF mainly view the heart from front-facing angles.")
+        with c2:
+            st.markdown("**Horizontal plane / chest leads**")
+            st.write("V1–V6 mainly view the heart across the chest from right-to-left/anterior perspectives.")
+
+    with fig_tab2:
+        st.markdown("### ECG lead groups and viewpoints")
+        st.markdown(
+            "Different ECG leads observe the same cardiac electrical activity from different directions. "
+            "The grouping below is useful for education and explanation, but it is **not a diagnostic map**."
+        )
+        shown = show_education_image(
+            EDUCATION_FIGURES["groups"],
+            caption="Original educational figure created for the CardioAI artefact.",
+        )
+        if not shown:
+            st.warning(
+                "Education figure missing. Add `ecg_lead_groups_and_heart_views.png` "
+                "to `assets/education/`."
+            )
+
+        group_df = pd.DataFrame(
+            {
+                "Lead group": ["Inferior", "Lateral", "Septal", "Anterior"],
+                "Common leads": ["II, III, aVF", "I, aVL, V5, V6", "V1, V2", "V3, V4"],
+                "Plain-language view": [
+                    "Looks from below toward the inferior wall",
+                    "Looks from the left/lateral side",
+                    "Looks toward the septal region",
+                    "Looks toward the anterior/front region",
+                ],
+            }
+        )
+        st.dataframe(group_df, hide_index=True, **_stretch_kwargs(st.dataframe))
+        st.caption("Lead grouping is simplified for education and should not be used alone for diagnosis.")
+
+    with fig_tab3:
+        st.markdown("### Electrode placement")
+        st.markdown(
+            "Correct electrode placement helps produce reliable ECG recordings. "
+            "This section explains where the chest and limb electrodes are placed."
+        )
+        shown = show_education_image(
+            EDUCATION_FIGURES["placement"],
+            caption="Original educational figure created for the CardioAI artefact.",
+        )
+        if not shown:
+            st.warning(
+                "Education figure missing. Add `12_lead_ecg_electrode_placement_guide.png` "
+                "to `assets/education/`."
+            )
+
+        placement_df = pd.DataFrame(
+            {
+                "Electrode": ["V1", "V2", "V3", "V4", "V5", "V6", "RA", "LA", "RL", "LL"],
+                "Placement summary": [
+                    "4th intercostal space, right sternal border",
+                    "4th intercostal space, left sternal border",
+                    "Midway between V2 and V4",
+                    "5th intercostal space, midclavicular line",
+                    "Anterior axillary line, level with V4",
+                    "Midaxillary line, level with V4/V5",
+                    "Right arm / right upper limb electrode",
+                    "Left arm / left upper limb electrode",
+                    "Right leg / ground electrode",
+                    "Left leg / lower limb electrode",
+                ],
+            }
+        )
+        with st.expander("Show placement table", expanded=not _is_presentation_mode()):
+            st.dataframe(placement_df, hide_index=True, **_stretch_kwargs(st.dataframe))
+
+    with fig_tab4:
+        st.markdown("### ECG waveform basics")
+        st.caption("This section explains the common ECG parts and typical timing ranges.")
+
+        show_pyplot(plot_ecg_education_figure(theme=theme))
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**P wave**")
+            st.write("Atrial activation — the atria begin the heartbeat.")
+            st.markdown("**QRS complex**")
+            st.write("Ventricular activation — the main pumping chambers contract.")
+        with c2:
+            st.markdown("**ST segment**")
+            st.write("Early recovery phase after QRS; usually judged by level and shape.")
+            st.markdown("**T wave**")
+            st.write("Later ventricular recovery phase.")
+
+        st.markdown("**Typical normal timing ranges**")
+        timing_df = pd.DataFrame(
+            {
+                "Part": ["P duration", "PR interval", "QRS duration", "QT interval", "ST segment"],
+                "Typical value": ["0.08–0.11 s", "0.12–0.20 s", "0.08–0.11 s", "0.35–0.44 s", "Varies"],
+                "Note": ["Usually < 0.12 s", "120–200 ms", "Usually < 0.12 s", "Depends on HR", "Judged mainly by level/shape"],
+            }
+        )
+        st.dataframe(timing_df, hide_index=True, **_stretch_kwargs(st.dataframe))
+
+        st.markdown("**How to read seconds vs milliseconds**")
+        st.markdown(
+            "- **1 second = 1000 ms**\n"
+            "- **0.12 s = 120 ms**\n"
+            "- ECG intervals are often reported in **ms**"
+        )
+
+        st.markdown("**How a general reader can look at an ECG**")
+        st.markdown(
+            "- Look first at whether the beats are regular or irregular.\n"
+            "- Then look at whether the QRS spikes are narrow or broad.\n"
+            "- Next, look at whether the ST and T-wave parts return smoothly toward baseline.\n"
+            "- Finally, remember that one unusual-looking beat alone is not enough for diagnosis."
+        )
 
     st.markdown("**Important reminder**")
     st.markdown(
         "- A probability score is not the same as a medical diagnosis.\n"
         "- The app compares patterns to training examples; clinicians interpret ECGs with symptoms, history, and other tests.\n"
-        "- Heart rate changes, motion, and noise can affect what the waveform looks like."
+        "- Heart rate changes, motion, lead placement, and noise can affect what the waveform looks like."
     )
 
     st.info("Educational support only. Real ECG interpretation depends on the full clinical context.")
-
 
 # =========================================================
 # Main app
