@@ -91,27 +91,6 @@ BTN_W = _stretch_kwargs(st.button)
 DL_W = _stretch_kwargs(st.download_button)
 
 
-def _is_presentation_mode() -> bool:
-    return bool(st.session_state.get("presentation_mode", True))
-
-
-def show_pyplot(fig) -> None:
-    """Render matplotlib figures safely across Streamlit versions."""
-    try:
-        st.pyplot(fig, **_stretch_kwargs(st.pyplot))
-    except TypeError:
-        st.pyplot(fig)
-
-
-def show_plotly(fig, display_mode_bar: bool = False) -> None:
-    """Render Plotly figures with a clean default toolbar setting."""
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-        config={"displayModeBar": display_mode_bar, "responsive": True},
-    )
-
-
 def init_session_state() -> None:
     defaults = {
         "theme": "Light",
@@ -124,7 +103,6 @@ def init_session_state() -> None:
         "remember_upload": True,
         "use_hf_assets": True,
         "image_layout": "3x4 standard",
-        "presentation_mode": True,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -165,9 +143,7 @@ def apply_theme_css(theme: str) -> None:
         .badge-warn {{ background:#713f12; color:#fef9c3 !important; }}
         .badge-bad {{ background:#7f1d1d; color:#fee2e2 !important; }}
         .card {{ padding: 0.9rem 1rem; border: 1px solid #243244; border-radius: 0.9rem; background: #0f172a; }}
-        section.main > div {{ padding-top: 1.0rem; }}
-        .block-container {{ padding-top: 1rem; padding-bottom: 1rem; max-width: 1500px; }}
-        div[data-testid="stMetric"] {{ padding: 0.45rem 0.55rem; border-radius: 0.75rem; }}
+        section.main > div {{ padding-top: 1.2rem; }}
         </style>
         """
     else:
@@ -180,9 +156,7 @@ def apply_theme_css(theme: str) -> None:
         .badge-warn { background:#fef9c3; color:#854d0e !important; }
         .badge-bad { background:#fee2e2; color:#991b1b !important; }
         .card { padding: 0.9rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.9rem; background: white; }
-        section.main > div { padding-top: 1.0rem; }
-        .block-container { padding-top: 1rem; padding-bottom: 1rem; max-width: 1500px; }
-        div[data-testid="stMetric"] { padding: 0.45rem 0.55rem; border-radius: 0.75rem; }
+        section.main > div { padding-top: 1.2rem; }
         </style>
         """
     st.markdown(css, unsafe_allow_html=True)
@@ -748,7 +722,7 @@ def build_detailed_interpretation(result, threshold):
 # =========================================================
 # Plot helpers
 # =========================================================
-def plot_12_lead_plotly(x12, title="ECG used for inference", fs=500, theme="Light", height: Optional[int] = None):
+def plot_12_lead_plotly(x12, title="ECG used for inference", fs=500, theme="Light"):
     if not HAVE_PLOTLY:
         return None
 
@@ -768,17 +742,14 @@ def plot_12_lead_plotly(x12, title="ECG used for inference", fs=500, theme="Ligh
             hovertemplate=f"{lead}<br>t=%{{x:.3f}} s<br>amp=%{{y:.3f}}<extra></extra>",
         ))
 
-    if height is None:
-        height = 520 if _is_presentation_mode() else 760
-
     fig.update_layout(
         title=title,
         template=template,
-        height=height,
-        margin=dict(l=58, r=18, t=45, b=35),
+        height=760,
+        margin=dict(l=70, r=20, t=55, b=40),
         showlegend=False,
         xaxis_title="Time (s)",
-        yaxis_title="Leads",
+        yaxis_title="Leads (offset display)",
     )
     fig.update_yaxes(tickmode="array", tickvals=offsets, ticktext=LEAD_NAMES, showgrid=True, zeroline=False)
     fig.update_xaxes(showgrid=True)
@@ -790,8 +761,7 @@ def plot_12_lead_matplotlib(x12, title="ECG", fs=DEFAULT_FS, theme="Light", styl
     t = np.arange(x12.shape[1]) / float(fs)
     offsets = np.arange(12)[::-1] * 5.0
 
-    fig_size = (12.0, 4.8) if _is_presentation_mode() else (12.5, 7.4)
-    fig, ax = plt.subplots(figsize=fig_size, dpi=120)
+    fig, ax = plt.subplots(figsize=(12.5, 7.4))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
 
@@ -825,43 +795,17 @@ def plot_12_lead_matplotlib(x12, title="ECG", fs=DEFAULT_FS, theme="Light", styl
     return fig
 
 
-def crop_padded_signal(sig: np.ndarray, pad: int = 20) -> np.ndarray:
-    """Remove long zero-padding from extracted beat tokens for clearer display."""
-    y = np.asarray(sig, dtype=np.float32).reshape(-1)
-    if y.size == 0:
-        return y
-
-    scale = float(np.nanpercentile(np.abs(y), 95))
-    if not np.isfinite(scale) or scale < 1e-6:
-        return y
-
-    idx = np.where(np.abs(y) > 0.02 * scale)[0]
-    if idx.size < 2:
-        return y
-
-    start = max(int(idx[0]) - pad, 0)
-    end = min(int(idx[-1]) + pad + 1, y.size)
-
-    # Keep original if cropping would remove too much meaningful signal.
-    if end - start < max(40, int(0.15 * y.size)):
-        return y
-    return y[start:end]
-
-
 def plot_single_beat(beat_lead2, theme="Light"):
     colors = _fig_colors(theme)
-    beat_to_plot = crop_padded_signal(beat_lead2)
-
-    fig, ax = plt.subplots(figsize=(7.2, 2.25), dpi=120)
+    fig, ax = plt.subplots(figsize=(8.5, 2.8))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
-    ax.plot(beat_to_plot, linewidth=1.25, color=colors["accent"])
-    ax.set_title("Representative extracted beat (Lead II)", color=colors["text"], pad=7, fontsize=11)
-    ax.set_xlabel("Samples", color=colors["text"], fontsize=9)
-    ax.set_ylabel("Amplitude", color=colors["text"], fontsize=9)
-    ax.tick_params(axis="x", colors=colors["text"], labelsize=8)
-    ax.tick_params(axis="y", colors=colors["text"], labelsize=8)
-    ax.grid(True, alpha=0.22, color=colors["grid"])
+    ax.plot(beat_lead2, linewidth=1.15, color=colors["accent"])
+    ax.set_title("Example extracted beat (Lead II)", color=colors["text"], pad=8)
+    ax.set_xlabel("Samples", color=colors["text"])
+    ax.tick_params(axis="x", colors=colors["text"])
+    ax.tick_params(axis="y", colors=colors["text"])
+    ax.grid(True, alpha=0.25, color=colors["grid"])
     for spine in ax.spines.values():
         spine.set_color(colors["text"])
     fig.tight_layout()
@@ -889,8 +833,8 @@ def plot_probability_bars_plotly(probs_dict, threshold=0.5, theme="Light"):
     fig.update_layout(
         title="Class probabilities",
         template=template,
-        height=320 if _is_presentation_mode() else 380,
-        margin=dict(l=45, r=30, t=42, b=32),
+        height=380,
+        margin=dict(l=50, r=35, t=55, b=35),
         xaxis_title="Probability",
         yaxis_title="Label",
     )
@@ -904,7 +848,7 @@ def plot_probability_bars_matplotlib(probs_dict, threshold=0.5, theme="Light"):
     labels = [k for k, _ in items]
     values = [float(v) for _, v in items]
 
-    fig, ax = plt.subplots(figsize=(7.2, 3.1), dpi=120)
+    fig, ax = plt.subplots(figsize=(8.5, 3.8))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
 
@@ -939,13 +883,8 @@ def plot_bar(values, labels, title, xlabel, theme="Light"):
     values = np.asarray(list(values), dtype=float)
     labels = list(labels)
 
-    if _is_presentation_mode():
-        fig_h = max(3.1, min(4.7, 0.28 * len(labels) + 1.0))
-        fig_w = 7.2
-    else:
-        fig_h = max(4.3, 0.42 * len(labels) + 1.2)
-        fig_w = 8.9
-    fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=120)
+    fig_h = max(4.3, 0.42 * len(labels) + 1.2)
+    fig, ax = plt.subplots(figsize=(8.9, fig_h))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
 
@@ -954,10 +893,10 @@ def plot_bar(values, labels, title, xlabel, theme="Light"):
     ax.set_yticks(y)
     ax.set_yticklabels(labels, color=colors["text"])
     ax.invert_yaxis()
-    ax.set_title(title, color=colors["text"], pad=8, fontsize=11)
-    ax.set_xlabel(xlabel, color=colors["text"], fontsize=9)
-    ax.tick_params(axis="x", colors=colors["text"], labelsize=8)
-    ax.tick_params(axis="y", colors=colors["text"], labelsize=9)
+    ax.set_title(title, color=colors["text"], pad=10)
+    ax.set_xlabel(xlabel, color=colors["text"])
+    ax.tick_params(axis="x", colors=colors["text"])
+    ax.tick_params(axis="y", colors=colors["text"])
     ax.grid(axis="x", alpha=0.20, color=colors["grid"])
 
     vmin = float(values.min()) if len(values) else 0.0
@@ -988,7 +927,7 @@ def plot_quality_metrics(metrics: dict, theme="Light"):
     labels = list(metrics.keys())
     values = list(metrics.values())
 
-    fig, ax = plt.subplots(figsize=(7.2, 3.0), dpi=120)
+    fig, ax = plt.subplots(figsize=(8.5, 4.0))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
 
@@ -1083,21 +1022,10 @@ def plot_ecg_education_figure(theme="Light"):
 
 def plot_signal_cue_overlay(x_used, rpeaks, measurements, theme="Light", fs=DEFAULT_FS, lead_idx=1):
     colors = _fig_colors(theme)
-    sig_full = np.asarray(x_used[lead_idx], dtype=float)
+    sig = np.asarray(x_used[lead_idx], dtype=float)
+    t = np.arange(sig.shape[0]) / float(fs)
 
-    # In presentation mode, focus on a smaller clinically interpretable window
-    # around the middle detected peak instead of showing all 10 seconds at once.
-    start_i, end_i = 0, sig_full.shape[0]
-    if _is_presentation_mode() and rpeaks is not None and len(rpeaks) > 0:
-        center = int(rpeaks[len(rpeaks) // 2])
-        half_w = int(2.5 * fs)
-        start_i = max(0, center - half_w)
-        end_i = min(sig_full.shape[0], center + half_w)
-
-    sig = sig_full[start_i:end_i]
-    t = np.arange(start_i, end_i) / float(fs)
-
-    fig, ax = plt.subplots(figsize=(8.8, 2.8), dpi=120)
+    fig, ax = plt.subplots(figsize=(10, 3.2))
     fig.patch.set_facecolor(colors["fig"])
     ax.set_facecolor(colors["ax"])
     ax.plot(t, sig, linewidth=1.2, color=colors["accent"])
@@ -1109,29 +1037,26 @@ def plot_signal_cue_overlay(x_used, rpeaks, measurements, theme="Light", fs=DEFA
     ax.grid(True, alpha=0.20, color=colors["grid"])
 
     if rpeaks is not None and len(rpeaks) > 0:
-        rpeaks_arr = np.asarray(rpeaks, dtype=int)
-        shown = rpeaks_arr[(rpeaks_arr >= start_i) & (rpeaks_arr < end_i)]
-        shown = shown[: min(8, len(shown))]
-        if len(shown) > 0:
-            ax.scatter(shown / float(fs), sig_full[shown], s=18, zorder=3)
+        shown = rpeaks[: min(8, len(rpeaks))]
+        ax.scatter(shown / float(fs), sig[shown], s=18, zorder=3)
         for rp in shown:
             ax.axvline(rp / float(fs), linestyle="--", linewidth=0.9, alpha=0.35)
 
         qrs_ms = measurements.get("qrs_ms_est")
-        if qrs_ms is not None and len(shown) > 0:
+        if qrs_ms is not None:
             half_w = int(max(1, round((qrs_ms / 1000.0) * fs / 2)))
             rp = int(shown[len(shown) // 2])
             left = max(0, rp - half_w)
-            right = min(len(sig_full) - 1, rp + half_w)
+            right = min(len(sig) - 1, rp + half_w)
             ax.axvspan(left / float(fs), right / float(fs), alpha=0.15)
             ax.text((left + right) / 2 / float(fs), ax.get_ylim()[1] * 0.85,
                     "Approx QRS window", ha="center", va="top", fontsize=9, color=colors["text"])
 
-            st_idx = min(len(sig_full) - 1, rp + int(0.08 * fs))
-            ax.scatter([st_idx / float(fs)], [sig_full[st_idx]], s=28, zorder=4)
+            st_idx = min(len(sig) - 1, rp + int(0.08 * fs))
+            ax.scatter([st_idx / float(fs)], [sig[st_idx]], s=28, zorder=4)
             ax.annotate("Approx ST point",
-                        xy=(st_idx / float(fs), sig_full[st_idx]),
-                        xytext=(st_idx / float(fs) + 0.18, sig_full[st_idx]),
+                        xy=(st_idx / float(fs), sig[st_idx]),
+                        xytext=(st_idx / float(fs) + 0.18, sig[st_idx]),
                         arrowprops=dict(arrowstyle="->", lw=1.0, color=colors["text"]),
                         fontsize=9, color=colors["text"])
 
@@ -1168,11 +1093,6 @@ def render_sidebar(primary_demo_dir: Path, secondary_demo_dir: Path, demo_manife
 
         st.divider()
         st.markdown("### Settings")
-        st.session_state["presentation_mode"] = st.checkbox(
-            "Presentation mode",
-            value=bool(st.session_state["presentation_mode"]),
-            help="Keeps charts compact, collapses technical details, and makes the artefact easier to present.",
-        )
         st.session_state["threshold"] = st.slider(
             "Decision threshold", 0.0, 1.0, float(st.session_state["threshold"]), 0.01
         )
@@ -1300,8 +1220,7 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
             x12_raw = load_uploaded_npy(uploaded)
         elif ext in IMAGE_EXTS:
             image = Image.open(uploaded).convert("RGB")
-            with st.expander("Preview uploaded ECG image", expanded=False):
-                st.image(image, caption="Uploaded ECG image", use_container_width=True)
+            st.image(image, caption="Uploaded ECG image", use_container_width=True)
             x12_raw = digitize_ecg_image(image, layout=layout)
         elif ext in PDF_EXTS:
             x12_raw = digitize_ecg_pdf(uploaded, layout=layout)
@@ -1347,123 +1266,82 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
 # Tab renderers
 # =========================================================
 def render_explanation_tab(theme, threshold, result, qc, qc_ok, quality_metrics, x12_raw, beats, rpeaks, x_used, apply_preprocess):
-    presentation_mode = _is_presentation_mode()
-
     st.subheader("Summary")
-    st.info(build_quick_summary(result, threshold))
+    st.write(build_quick_summary(result, threshold))
 
-    # Key values as small dashboard cards.
-    top_label = result.get("top_label", "N/A")
-    top_prob = result.get("top_prob", None)
-    margin = result.get("margin", None)
-    mi_prob = result.get("mi_prob", None)
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Primary finding", top_label)
-    c2.metric("Confidence", f"{top_prob:.1%}" if top_prob is not None else "N/A")
-    c3.metric("Confidence gap", f"{margin:.3f}" if margin is not None else "N/A")
-    c4.metric("MI score", f"{mi_prob:.1%}" if mi_prob is not None else "N/A")
-
-    with st.expander("Detailed plain-language interpretation", expanded=not presentation_mode):
-        st.write(build_detailed_interpretation(result, threshold))
+    st.subheader("Details")
+    st.write(build_detailed_interpretation(result, threshold))
 
     if result.get("template_explanation"):
-        with st.expander("Rule-based explanation template", expanded=False):
+        with st.expander("Rule-based explanation (template)"):
             st.write(result["template_explanation"])
 
-    st.subheader("Explainability overview")
+    st.subheader("Visual signal cues")
+    st.pyplot(plot_signal_cue_overlay(x_used, rpeaks, result.get("measurements", {}), theme=theme))
     st.markdown(
-        "<div class='small-note'>These charts explain model behavior, not clinical causality. Positive values indicate stronger influence on the current prediction.</div>",
+        "<div class='small-note'>This overlay marks approximate signal landmarks used to make the explanation easier to follow. It is not a clinically validated abnormality locator.</div>",
         unsafe_allow_html=True,
     )
 
-    xai = result.get("xai", {})
-    col1, col2 = st.columns(2)
+    st.subheader("Signal-based view")
+    st.write("Most active leads in extracted beats:", ", ".join(result["top_active_leads"]))
+    st.pyplot(plot_bar(result["lead_activity"], LEAD_NAMES, "Lead activity in extracted beats", "Normalized activity", theme=theme))
+    st.markdown(
+        "<div class='small-note'>Higher activity = larger average absolute signal in extracted beats, not diagnosis.</div>",
+        unsafe_allow_html=True,
+    )
 
-    with col1:
-        st.markdown("**Lead activity in extracted beats**")
-        st.caption("Shows which leads had the strongest signal activity after beat extraction.")
-        show_pyplot(
+    st.subheader("Explainability (XAI)")
+    st.markdown("<div class='small-note'>These explain model behavior, not clinical causality.</div>", unsafe_allow_html=True)
+    xai = result.get("xai", {})
+
+    if xai.get("occlusion_delta_toplabel") is not None:
+        st.write("**Lead occlusion sensitivity**")
+        st.pyplot(
             plot_bar(
-                result["lead_activity"],
+                xai["occlusion_delta_toplabel"],
                 LEAD_NAMES,
-                "Lead activity",
-                "Normalized activity",
+                "Occlusion sensitivity vs lead",
+                "Δ probability (base - occluded)",
                 theme=theme,
             )
         )
         st.markdown(
-            "<div class='small-note'>Higher activity means larger average absolute signal in extracted beats; it is not a diagnosis.</div>",
+            "<div class='small-note'>Bigger positive values mean the model depended more on that lead. Near-zero or negative values mean removing that lead changed the prediction little or made it slightly stronger.</div>",
             unsafe_allow_html=True,
         )
 
-    with col2:
-        if xai.get("occlusion_delta_toplabel") is not None:
-            st.markdown("**Lead occlusion sensitivity**")
-            st.caption("Shows how much the top prediction changes when a lead is removed.")
-            show_pyplot(
-                plot_bar(
-                    xai["occlusion_delta_toplabel"],
-                    LEAD_NAMES,
-                    "Occlusion sensitivity",
-                    "Δ probability",
-                    theme=theme,
-                )
+    if xai.get("ig_attr_toplabel") is not None:
+        st.write(f"**Integrated Gradients** (per-lead attribution; steps={xai.get('ig_steps', 16)})")
+        st.pyplot(
+            plot_bar(
+                xai["ig_attr_toplabel"],
+                LEAD_NAMES,
+                "Integrated Gradients attribution vs lead",
+                "Attribution (normalized)",
+                theme=theme,
             )
-            st.markdown(
-                "<div class='small-note'>Bigger positive values mean the model depended more on that lead.</div>",
-                unsafe_allow_html=True,
-            )
-        elif xai.get("ig_attr_toplabel") is not None:
-            st.markdown("**Integrated Gradients attribution**")
-            st.caption("Shows per-lead contribution for the top prediction.")
-            show_pyplot(
-                plot_bar(
-                    xai["ig_attr_toplabel"],
-                    LEAD_NAMES,
-                    "Integrated Gradients",
-                    "Attribution",
-                    theme=theme,
-                )
-            )
-
-    if xai.get("occlusion_delta_toplabel") is not None and xai.get("ig_attr_toplabel") is not None:
-        with st.expander("Show Integrated Gradients attribution", expanded=not presentation_mode):
-            show_pyplot(
-                plot_bar(
-                    xai["ig_attr_toplabel"],
-                    LEAD_NAMES,
-                    f"Integrated Gradients attribution (steps={xai.get('ig_steps', 16)})",
-                    "Attribution (normalized)",
-                    theme=theme,
-                )
-            )
-            st.markdown(
-                "<div class='small-note'>Larger attribution means the model assigned more influence to that lead for the top prediction. More IG steps usually gives smoother attribution but slower runtime.</div>",
-                unsafe_allow_html=True,
-            )
-
-    with st.expander("Show signal cue overlay", expanded=not presentation_mode):
-        show_pyplot(plot_signal_cue_overlay(x_used, rpeaks, result.get("measurements", {}), theme=theme))
+        )
         st.markdown(
-            "<div class='small-note'>This overlay marks approximate signal landmarks used to make the explanation easier to follow. It is not a clinically validated abnormality locator.</div>",
+            "<div class='small-note'>Larger attribution means the model assigned more influence to that lead for the top prediction. More IG steps usually gives smoother attribution but slower runtime.</div>",
             unsafe_allow_html=True,
         )
 
-    with st.expander("Quality checks and raw details", expanded=not presentation_mode):
-        if qc_ok:
-            st.success("QC passed (basic checks).")
-        else:
-            st.warning("QC reported issues:")
-            for msg in qc.get("issues", []):
-                st.write("-", msg)
+    st.subheader("Quality checks")
+    if qc_ok:
+        st.success("QC passed (basic checks).")
+    else:
+        st.warning("QC reported issues:")
+        for msg in qc.get("issues", []):
+            st.write("-", msg)
 
-        show_pyplot(plot_quality_metrics(quality_metrics, theme=theme))
-        st.markdown(
-            "<div class='small-note'>Quality metrics summarize finiteness, non-flatness, spread, and R-peak coverage.</div>",
-            unsafe_allow_html=True,
-        )
+    st.pyplot(plot_quality_metrics(quality_metrics, theme=theme))
+    st.markdown(
+        "<div class='small-note'>Quality metrics summarize finiteness, non-flatness, spread, and R-peak coverage.</div>",
+        unsafe_allow_html=True,
+    )
 
+    with st.expander("Raw checks"):
         st.write("Uploaded ECG shape:", x12_raw.shape)
         st.write("Extracted beats shape:", beats.shape)
         st.write("Task type:", result.get("task_type", "N/A"))
@@ -1476,7 +1354,7 @@ def render_education_tab(theme):
     st.subheader("Understand the ECG terms")
     st.caption("This panel is for non-experts. It shows the main ECG parts and typical normal timing.")
 
-    show_pyplot(plot_ecg_education_figure(theme=theme))
+    st.pyplot(plot_ecg_education_figure(theme=theme))
 
     c1, c2 = st.columns(2)
     with c1:
@@ -1647,15 +1525,15 @@ def main():
 
         if ecg_style == "Standard" and HAVE_PLOTLY:
             fig = plot_12_lead_plotly(x_used, title="ECG used for inference", fs=DEFAULT_FS, theme=theme)
-            show_plotly(fig, display_mode_bar=not _is_presentation_mode())
+            st.plotly_chart(fig, use_container_width=True)
             st.markdown(
-                "<div class='small-note'>Interactive 12-lead viewer with direct lead labels and compact height for presentation.</div>",
+                "<div class='small-note'>Interactive viewer with direct lead labeling and reduced clutter.</div>",
                 unsafe_allow_html=True,
             )
         else:
             if ecg_style == "Standard" and not HAVE_PLOTLY:
                 st.warning("Plotly is not installed; using static viewer.")
-            show_pyplot(
+            st.pyplot(
                 plot_12_lead_matplotlib(
                     x_used,
                     title="Preprocessed 12-lead ECG" if result.get("applied_preprocess", False) else "ECG used for inference",
@@ -1665,36 +1543,26 @@ def main():
                 )
             )
 
-        with st.expander("Show representative extracted beat (Lead II)", expanded=not _is_presentation_mode()):
-            show_pyplot(plot_single_beat(beats[0, 1], theme=theme))
+        with st.expander("Show extracted beat example (Lead II)"):
+            st.pyplot(plot_single_beat(beats[0, 1], theme=theme))
             st.markdown(
-                "<div class='small-note'>One extracted beat token. Padding is cropped for display only; the model still uses the actual extracted beats.</div>",
+                "<div class='small-note'>One extracted beat token. The model aggregates multiple beats to decide.</div>",
                 unsafe_allow_html=True,
             )
 
     with tab2:
         st.subheader("Prediction summary")
-
-        df_probs = probability_df(result["probs"], result["preds"])
-        positives = result.get("positive_labels", [])
-        hr = measurements.get("heart_rate_bpm", None)
-        qrs = measurements.get("qrs_ms_est", None)
-        st_dev = measurements.get("st_dev_est", None)
-
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Top label", result["top_label"])
-        m2.metric("Top probability", f"{result['top_prob']:.1%}")
-        m3.metric("Separation margin", f"{result.get('margin', 0.0):.3f}")
-        m4.metric("Threshold", f"{threshold:.2f}")
-
-        left, right = st.columns([0.85, 1.65])
+        left, right = st.columns([1.0, 1.0])
 
         with left:
-            st.markdown("**Decision status**")
-            st.write(f"**Labels above threshold:** {', '.join(positives) if positives else 'None'}")
-
+            st.metric("Top predicted label", result["top_label"])
+            st.metric("Top probability", f"{result['top_prob']:.4f}")
             if result.get("mi_prob", None) is not None:
-                st.write(f"**MI probability:** {result['mi_prob']:.3f}")
+                st.metric("MI probability", f"{result['mi_prob']:.4f}")
+            st.metric("Separation margin", f"{result.get('margin', 0.0):.4f}")
+
+            st.write("**Labels crossing threshold:**")
+            st.write(", ".join(result.get("positive_labels", [])) if result.get("positive_labels", []) else "None")
 
             if gt is not None:
                 st.write(f"**Ground truth:** {gt}")
@@ -1703,26 +1571,33 @@ def main():
                 st.write("**Ground truth:** unknown")
                 st.write("**Prediction match:** cannot be verified automatically")
 
-            st.markdown("**Signal summary (approx)**")
-            s1, s2, s3 = st.columns(3)
-            s1.metric("HR", f"{hr:.1f}" if hr is not None else "N/A")
-            s2.metric("QRS", f"{qrs:.0f} ms" if qrs is not None else "N/A")
-            s3.metric("ST dev.", f"{st_dev:.3f}" if st_dev is not None else "N/A")
-
         with right:
-            st.markdown("**Probability details**")
-            if probability_view in ["Bars", "Both"]:
+            st.subheader("Probability details")
+            df_probs = probability_df(result["probs"], result["preds"])
+
+            if probability_view == "Table":
+                st.dataframe(df_probs, **_stretch_kwargs(st.dataframe), hide_index=True)
+            elif probability_view == "Bars":
                 if HAVE_PLOTLY:
-                    show_plotly(plot_probability_bars_plotly(result["probs"], threshold=threshold, theme=theme))
+                    st.plotly_chart(plot_probability_bars_plotly(result["probs"], threshold=threshold, theme=theme), use_container_width=True)
                 else:
-                    show_pyplot(plot_probability_bars_matplotlib(result["probs"], threshold=threshold, theme=theme))
+                    st.pyplot(plot_probability_bars_matplotlib(result["probs"], threshold=threshold, theme=theme))
             else:
+                if HAVE_PLOTLY:
+                    st.plotly_chart(plot_probability_bars_plotly(result["probs"], threshold=threshold, theme=theme), use_container_width=True)
+                else:
+                    st.pyplot(plot_probability_bars_matplotlib(result["probs"], threshold=threshold, theme=theme))
                 st.dataframe(df_probs, **_stretch_kwargs(st.dataframe), hide_index=True)
 
-        table_expanded = probability_view == "Table" or (probability_view == "Both" and not _is_presentation_mode())
-        if probability_view == "Both":
-            with st.expander("Show probability table", expanded=table_expanded):
-                st.dataframe(df_probs, **_stretch_kwargs(st.dataframe), hide_index=True)
+        st.divider()
+        st.subheader("Signal summary (approx)")
+        hr = measurements.get("heart_rate_bpm", None)
+        qrs = measurements.get("qrs_ms_est", None)
+        st_dev = measurements.get("st_dev_est", None)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Estimated HR (bpm)", f"{hr:.1f}" if hr is not None else "N/A")
+        c2.metric("Approx QRS (ms)", f"{qrs:.0f}" if qrs is not None else "N/A")
+        c3.metric("Approx ST deviation", f"{st_dev:.3f}" if st_dev is not None else "N/A")
 
     with tab3:
         render_explanation_tab(
