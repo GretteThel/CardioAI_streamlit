@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import traceback
 import time
 from datetime import datetime
 from io import BytesIO
@@ -39,14 +40,26 @@ except Exception:
     fitz = None
     HAVE_FITZ = False
 
-from cardioai_infer import (
-    CLASS_NAMES,
-    LEAD_NAMES,
-    FS,
-    load_model,
-    load_uploaded_npy,
-    predict_ecg,
-)
+# CardioAI inference module. Keep this import guarded so Streamlit Cloud
+# can show a clear error message instead of only the generic “Oh no” page.
+CARDIOAI_IMPORT_ERROR = None
+try:
+    from cardioai_infer import (
+        CLASS_NAMES,
+        LEAD_NAMES,
+        FS,
+        load_model,
+        load_uploaded_npy,
+        predict_ecg,
+    )
+except Exception as e:
+    CARDIOAI_IMPORT_ERROR = e
+    CLASS_NAMES = ["NORM", "MI", "STTC", "CD", "HYP"]
+    LEAD_NAMES = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+    FS = 500
+    load_model = None
+    load_uploaded_npy = None
+    predict_ecg = None
 
 # =========================================================
 # App constants
@@ -71,6 +84,14 @@ DEFAULT_FS = FS
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 PDF_EXTS = {".pdf"}
 SIGNAL_EXTS = {".npy"}
+
+CLASS_DESCRIPTIONS = {
+    "NORM": "Normal ECG pattern",
+    "MI": "Myocardial infarction-related pattern",
+    "STTC": "ST/T-wave change",
+    "CD": "Conduction disturbance",
+    "HYP": "Hypertrophy-related pattern",
+}
 
 st.set_page_config(page_title="CardioAI – ECG Explorer", layout="wide")
 
@@ -191,6 +212,12 @@ def apply_theme_css(theme: str) -> None:
 def badge(text: str, kind: str) -> str:
     cls = {"ok": "badge-ok", "warn": "badge-warn", "bad": "badge-bad"}[kind]
     return f"<span class='badge {cls}'>{text}</span>"
+
+
+def render_class_legend() -> None:
+    """Show a compact legend for the five PTB-XL diagnostic superclasses."""
+    legend_lines = [f"**{label}** = {description}" for label, description in CLASS_DESCRIPTIONS.items()]
+    st.caption("  |  ".join(legend_lines))
 
 
 # =========================================================
@@ -723,14 +750,14 @@ def build_detailed_interpretation(result, threshold):
     if hr is not None:
         signal_lines.append(f"heart rate ≈ **{hr:.1f} bpm**")
     if qrs is not None:
-        signal_lines.append(f"QRS width ≈ **{qrs:.0f} ms**")
+        signal_lines.append(f"Approx. QRS window estimate: **{qrs:.0f} ms**")
     if st_dev is not None:
         signal_lines.append(f"ST deviation in Lead II ≈ **{st_dev:.3f}** z-units")
     if signal_lines:
         lines.append("**Signal cues used for context:** " + "; ".join(signal_lines) + ".")
 
     if top_label == "CD" and qrs is not None:
-        lines.append("**Plain-language interpretation:** A conduction-disturbance prediction can align with broader or slower ventricular conduction patterns. The displayed QRS estimate helps the reader see whether ventricular activation may look wider than usual, but it is only an approximation.")
+        lines.append("**Plain-language interpretation:** A conduction-disturbance prediction can align with broader or slower ventricular conduction patterns. The displayed QRS window estimate helps the reader see whether ventricular activation may look wider than usual, but it is only an approximation and not a formal clinical QRS measurement.")
     elif top_label == "MI":
         lines.append("**Plain-language interpretation:** An MI prediction means the model found a pattern that resembles myocardial infarction examples in training data. This should always be confirmed clinically because model similarity is not the same as diagnosis.")
     elif top_label == "STTC":
@@ -1373,7 +1400,7 @@ def render_explanation_tab(theme, threshold, result, qc, qc_ok, quality_metrics,
 
     st.subheader("Explainability overview")
     st.markdown(
-        "<div class='small-note'>These charts explain model behavior, not clinical causality. Positive values indicate stronger influence on the current prediction.</div>",
+        "<div class='small-note'>These plots show which leads influenced the model most. They do not prove disease location or clinical causality.</div>",
         unsafe_allow_html=True,
     )
 
@@ -1532,6 +1559,15 @@ def main():
     init_session_state()
     apply_theme_css(st.session_state["theme"])
 
+    st.title("CardioAI – ECG Explorer")
+    st.caption("Research demo only. Not for clinical use.")
+
+    if CARDIOAI_IMPORT_ERROR is not None:
+        st.error("The app could not import `cardioai_infer.py`.")
+        st.write("Make sure `cardioai_infer.py` is in the same GitHub repository/folder as this Streamlit app and that all required packages are listed in `requirements.txt`.")
+        st.exception(CARDIOAI_IMPORT_ERROR)
+        st.stop()
+
     model_path, primary_demo_dir, secondary_demo_dir, demo_manifest_path, asset_message = resolve_assets(
         use_hf_assets=bool(st.session_state["use_hf_assets"])
     )
@@ -1543,8 +1579,6 @@ def main():
     probability_view = st.session_state["probability_view"]
     apply_preprocess = bool(st.session_state["apply_preprocess"])
 
-    st.title("CardioAI – ECG Explorer")
-    st.caption("Research demo only. Not for clinical use.")
     st.info("Image upload is experimental. Best results come from clean 12-lead ECG screenshots or PDF exports with standard layout.")
 
     try:
@@ -1706,7 +1740,7 @@ def main():
             st.markdown("**Signal summary (approx)**")
             s1, s2, s3 = st.columns(3)
             s1.metric("HR", f"{hr:.1f}" if hr is not None else "N/A")
-            s2.metric("QRS", f"{qrs:.0f} ms" if qrs is not None else "N/A")
+            s2.metric("Approx. QRS window estimate", f"{qrs:.0f} ms" if qrs is not None else "N/A")
             s3.metric("ST dev.", f"{st_dev:.3f}" if st_dev is not None else "N/A")
 
         with right:
@@ -1718,6 +1752,9 @@ def main():
                     show_pyplot(plot_probability_bars_matplotlib(result["probs"], threshold=threshold, theme=theme))
             else:
                 st.dataframe(df_probs, **_stretch_kwargs(st.dataframe), hide_index=True)
+
+            st.markdown("**Class legend**")
+            render_class_legend()
 
         table_expanded = probability_view == "Table" or (probability_view == "Both" and not _is_presentation_mode())
         if probability_view == "Both":
@@ -1751,6 +1788,7 @@ def main():
             "probability_display": probability_view,
             "applied_preprocess": result.get("applied_preprocess", apply_preprocess),
             "prediction": {
+                "class_descriptions": CLASS_DESCRIPTIONS,
                 "top_label": result.get("top_label"),
                 "top_prob": result.get("top_prob"),
                 "margin": result.get("margin"),
@@ -1785,4 +1823,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # This makes Streamlit Cloud debugging much easier: instead of only the
+        # generic “Oh no” screen, the app page shows the real exception.
+        st.error("CardioAI failed to start or render.")
+        st.write("Open Streamlit Cloud logs for the full traceback. The exception below is shown to make debugging faster.")
+        st.exception(e)
+        with st.expander("Full traceback", expanded=False):
+            st.code(traceback.format_exc())
