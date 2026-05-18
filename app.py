@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import re
 import traceback
 import time
 from datetime import datetime
@@ -215,9 +216,36 @@ def badge(text: str, kind: str) -> str:
 
 
 def render_class_legend() -> None:
-    """Show a compact legend for the five PTB-XL diagnostic superclasses."""
-    legend_lines = [f"**{label}** = {description}" for label, description in CLASS_DESCRIPTIONS.items()]
-    st.caption("  |  ".join(legend_lines))
+    """Show a compact, readable legend for the five PTB-XL diagnostic superclasses."""
+    rows = []
+    for label, description in CLASS_DESCRIPTIONS.items():
+        rows.append(
+            f"<div style='margin-bottom:0.18rem; line-height:1.35;'>"
+            f"<strong>{label}</strong> = {description}"
+            f"</div>"
+        )
+    st.markdown(
+        "<div class='small-note'>" + "".join(rows) + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def clean_template_explanation(text: str) -> str:
+    """Use safer presentation wording for approximate ECG measurements."""
+    if not text:
+        return text
+    cleaned = str(text)
+    cleaned = cleaned.replace(
+        "QRS estimate is provided below (approx).",
+        "Approximate QRS window estimate is provided below for context."
+    )
+    cleaned = cleaned.replace("QRS estimate", "Approx. QRS window estimate")
+    cleaned = re.sub(
+        r"Signal summary \(approx\): HR ([^,]+), QRS ([^,]+), ST deviation",
+        r"Signal summary (approx): HR \1, Approx. QRS window estimate \2, ST deviation",
+        cleaned,
+    )
+    return cleaned
 
 
 # =========================================================
@@ -1310,18 +1338,20 @@ def resolve_input_source(primary_demo_dir: Path, secondary_demo_dir: Path, demo_
         key="main_ecg_uploader",
     )
 
-    layout_label = st.selectbox(
-        "ECG image layout",
-        ["3x4 standard", "4x3 stacked"],
-        index=0,
-        key="image_layout_select",
-    )
-    layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
-
     # 1) New upload takes highest priority
     if uploaded is not None:
         uploaded_name = uploaded.name
         ext = Path(uploaded.name).suffix.lower()
+
+        layout = "3x4_standard"
+        if ext in IMAGE_EXTS or ext in PDF_EXTS:
+            layout_label = st.selectbox(
+                "ECG image layout",
+                ["3x4 standard", "4x3 stacked"],
+                index=0,
+                key="image_layout_select",
+            )
+            layout = "3x4_standard" if layout_label == "3x4 standard" else "4x3_stacked"
 
         if ext == ".npy":
             x12_raw = load_uploaded_npy(uploaded)
@@ -1396,7 +1426,7 @@ def render_explanation_tab(theme, threshold, result, qc, qc_ok, quality_metrics,
 
     if result.get("template_explanation"):
         with st.expander("Rule-based explanation template", expanded=False):
-            st.write(result["template_explanation"])
+            st.write(clean_template_explanation(result["template_explanation"]))
 
     st.subheader("Explainability overview")
     st.markdown(
@@ -1665,7 +1695,7 @@ def main():
     if gt is None:
         status_row.append(badge("Verification: Unverified", "warn"))
     else:
-        status_row.append(badge(f"Ground truth: {gt}", "ok"))
+        status_row.append(badge(f"Reference label: {gt}", "ok"))
         status_row.append(badge("Match ✅" if is_correct else "Mismatch ❌", "ok" if is_correct else "bad"))
 
     st.markdown(" ".join(status_row), unsafe_allow_html=True)
@@ -1731,16 +1761,17 @@ def main():
                 st.write(f"**MI probability:** {result['mi_prob']:.3f}")
 
             if gt is not None:
-                st.write(f"**Ground truth:** {gt}")
+                st.write(f"**Reference label:** {gt}")
                 st.write(f"**Prediction match:** {'Yes' if is_correct else 'No'}")
             else:
-                st.write("**Ground truth:** unknown")
+                st.write("**Reference label:** unknown")
                 st.write("**Prediction match:** cannot be verified automatically")
 
             st.markdown("**Signal summary (approx)**")
             s1, s2, s3 = st.columns(3)
             s1.metric("HR", f"{hr:.1f}" if hr is not None else "N/A")
-            s2.metric("Approx. QRS window estimate", f"{qrs:.0f} ms" if qrs is not None else "N/A")
+            s2.metric("QRS window", f"{qrs:.0f} ms" if qrs is not None else "N/A")
+            s2.caption("Approx. QRS window estimate")
             s3.metric("ST dev.", f"{st_dev:.3f}" if st_dev is not None else "N/A")
 
         with right:
